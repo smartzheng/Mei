@@ -28,7 +28,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.layout.positionInRoot
+import androidx.compose.ui.unit.toSize
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
@@ -59,25 +64,29 @@ fun MiniPlayerBarContent(
     drawCover: Boolean = true,
     bottomInset: Dp = 0.dp,
     compactProgress: Float = 0f,
+    drawSurface: Boolean = true,
+    enabled: Boolean = true,
+    onSurfaceBounds: (Rect) -> Unit = {},
+    onArtworkReady: (String, Painter) -> Unit = { _, _ -> },
 ) {
     val compact = compactProgress.coerceIn(0f, 1f)
     val horizontalMargin = miniPlayerHorizontalMargin(meiPageGutter(), compact)
     val nextWidth = lerp(48.dp, 0.dp, compact)
     Column(modifier = modifier.fillMaxWidth()) {
-        MeiGlassSurface(
-            modifier = Modifier.fillMaxWidth()
-                .padding(horizontal = horizontalMargin)
-                .height(MiniPlayerBarHeight),
-            shape = RoundedCornerShape(MiniPlayerBarHeight / 2),
-            solidColor = MaterialTheme.colorScheme.secondaryContainer,
-        ) {
+        val surfaceModifier = Modifier.fillMaxWidth().padding(horizontal = horizontalMargin)
+            .height(MiniPlayerBarHeight).onGloballyPositioned {
+                // boundsInRoot is clipped by the animated parent; feeding that visible height
+                // back into the next frame can permanently shrink the collapsed capsule.
+                onSurfaceBounds(Rect(it.positionInRoot(), it.size.toSize()))
+            }
+        val miniContent: @Composable () -> Unit = {
             // Insets stay outside the floating surface; cover coordinates remain sheet-local.
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(MiniPlayerBarHeight)
-                    .clickable(onClick = onClick)
+                    .clickable(enabled = enabled, onClick = onClick)
                     .padding(start = 8.dp, end = 2.dp),
             ) {
                 MiniPlayerSongContent(
@@ -85,11 +94,13 @@ fun MiniPlayerBarContent(
                     artist = artist.orEmpty(),
                     coverUrl = coverUrl,
                     drawCover = drawCover,
+                    onArtworkReady = onArtworkReady,
                     modifier = Modifier.weight(1f),
                 )
 
                 IconButton(
                     onClick = onPlayPause,
+                    enabled = enabled,
                     modifier = Modifier.size(48.dp),
                 ) {
                     Icon(
@@ -109,7 +120,7 @@ fun MiniPlayerBarContent(
                 ) {
                     IconButton(
                         onClick = onNext,
-                        enabled = canSkipNext && compact < 0.5f,
+                        enabled = enabled && canSkipNext && compact < 0.5f,
                         modifier = Modifier.size(48.dp),
                     ) {
                         Icon(
@@ -124,6 +135,12 @@ fun MiniPlayerBarContent(
                 }
             }
         }
+        if (drawSurface) MeiGlassSurface(
+            modifier = surfaceModifier,
+            shape = RoundedCornerShape(MiniPlayerBarHeight / 2),
+            solidColor = MaterialTheme.colorScheme.secondaryContainer,
+        ) { miniContent() }
+        else Box(surfaceModifier) { miniContent() }
         Spacer(modifier = Modifier.height(bottomInset))
     }
 }
@@ -135,6 +152,7 @@ private fun MiniPlayerSongContent(
     coverUrl: String?,
     modifier: Modifier = Modifier,
     drawCover: Boolean = true,
+    onArtworkReady: (String, Painter) -> Unit = { _, _ -> },
 ) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
@@ -144,7 +162,7 @@ private fun MiniPlayerSongContent(
             modifier = Modifier
                 .size(MiniPlayerCoverSize)
                 .clip(RoundedCornerShape(MiniPlayerCoverCornerRadius))
-                .background(MaterialTheme.colorScheme.surfaceContainerHigh),
+                .then(if (drawCover) Modifier.background(MaterialTheme.colorScheme.surfaceContainerHigh) else Modifier),
             contentAlignment = Alignment.Center,
         ) {
             if (drawCover && coverUrl != null) {
@@ -154,9 +172,10 @@ private fun MiniPlayerSongContent(
                         .build(),
                     contentDescription = null,
                     contentScale = ContentScale.Crop,
+                    onSuccess = { onArtworkReady(coverUrl, it.painter) },
                     modifier = Modifier.size(MiniPlayerCoverSize),
                 )
-            } else {
+            } else if (drawCover) {
                 Icon(
                     imageVector = Icons.Rounded.MusicNote,
                     contentDescription = null,

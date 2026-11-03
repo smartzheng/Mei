@@ -26,6 +26,7 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.absoluteOffset
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -46,9 +47,12 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.AbsoluteAlignment
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
@@ -57,8 +61,12 @@ import androidx.compose.ui.input.pointer.util.addPointerInputChange
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.foundation.gestures.detectTapGestures
+import kotlin.math.roundToInt
 import com.ljyh.mei.ui.motion.PlayerMotionSpec
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.drop
@@ -98,6 +106,9 @@ fun BottomSheet(
     sharedTransitionKey: String? = null,
     keepExpandedContentComposed: Boolean = false,
     transparentCollapsedContainer: Boolean = false,
+    // Experimental: measured mini surface in host coordinates; null keeps the existing sheet.
+    expansionBounds: Rect? = null,
+    expansionRadius: Dp = 24.dp,
     collapsedContent: @Composable BoxScope.() -> Unit,
     overlayContent: @Composable BoxScope.() -> Unit = {},
     content: @Composable BoxScope.() -> Unit,
@@ -121,6 +132,11 @@ fun BottomSheet(
     }
 
     BoxWithConstraints(modifier = modifier.fillMaxSize()) {
+        val density = LocalDensity.current
+        val hostSize = IntSize(constraints.maxWidth, constraints.maxHeight)
+        val expansionFrame = playerContainerFrame(expansionBounds,
+            Size(hostSize.width.toFloat(), hostSize.height.toFloat()), progress,
+            with(density) { expansionRadius.toPx() })
         val morphLayout = morphSpec?.let {
             resolveMorphLayout(
                 maxWidth = maxWidth,
@@ -132,12 +148,18 @@ fun BottomSheet(
         }
         val cornerRadius = morphLayout?.cornerRadius
             ?: if (!state.isExpanded) 16.dp else 0.dp
-        val sheetShape = if (morphLayout != null && morphSpec.roundBottomCorners) {
+        val sheetShape = if (expansionFrame != null) {
+            RoundedCornerShape(with(density) { expansionFrame.radius.toDp() })
+        } else if (morphLayout != null && morphSpec.roundBottomCorners) {
             RoundedCornerShape(cornerRadius)
         } else {
             RoundedCornerShape(topStart = cornerRadius, topEnd = cornerRadius)
         }
-        val containerModifier = if (morphLayout != null) {
+        val containerModifier = if (expansionFrame != null) {
+            Modifier.align(AbsoluteAlignment.TopLeft)
+                .width(with(density) { expansionFrame.bounds.width.toDp() })
+                .height(with(density) { expansionFrame.bounds.height.toDp() })
+        } else if (morphLayout != null) {
             Modifier
                 .align(Alignment.TopCenter)
                 .width(morphLayout.width)
@@ -153,10 +175,11 @@ fun BottomSheet(
 
         Box(
             modifier = containerModifier
-                .offset {
+                .absoluteOffset {
                     val y = (state.expandedBound - state.value)
                         .roundToPx() - (morphLayout?.effectiveBottomMargin ?: 0.dp).roundToPx()
-                    IntOffset(x = 0, y = y.coerceAtLeast(0))
+                    if (expansionFrame != null) IntOffset(expansionFrame.bounds.left.roundToInt(), expansionFrame.bounds.top.roundToInt())
+                    else IntOffset(x = 0, y = y.coerceAtLeast(0))
                 }
                 .pointerInput(onHorizontalSwipe) {
                     if (onHorizontalSwipe == null) return@pointerInput
@@ -191,7 +214,9 @@ fun BottomSheet(
                 )
                 .clip(sheetShape)
                 .background(
-                    if (morphLayout != null) {
+                    if (expansionFrame != null) {
+                        backgroundColor
+                    } else if (morphLayout != null) {
                         backgroundColor.copy(
                             alpha = backgroundColor.alpha * if (transparentCollapsedContainer) {
                                 PlayerMotionSpec.BackgroundReveal.transform(progress)
@@ -208,12 +233,13 @@ fun BottomSheet(
                         )
                     }
                 )
+                .playerContainerViewport(expansionFrame, hostSize)
         ) {
             if (!state.isCollapsed && !state.isDismissed) {
                 BackHandler(onBack = state::collapseSoft)
             }
 
-            if (sharedTransitionKey != null) {
+            if (sharedTransitionKey != null && expansionFrame == null) {
                 SharedTransitionLayout {
                     val sharedScope = this
                     AnimatedContent(
@@ -269,6 +295,7 @@ fun BottomSheet(
                     BoxWithConstraints(
                         modifier = Modifier
                             .fillMaxSize()
+                            .then(if (expansionFrame != null && !state.isExpanded) Modifier.clearAndSetSemantics {} else Modifier)
                             .graphicsLayer {
                                 alpha = if (keepExpandedContentComposed) {
                                     1f
@@ -283,6 +310,14 @@ fun BottomSheet(
                 if (!state.isExpanded && (onDismiss == null || !state.isDismissed)) {
                     Box(
                         modifier = Modifier
+                            .offset {
+                                val miniTop = if (state.isCollapsed) with(density) {
+                                    (state.expandedBound - state.collapsedBound -
+                                        (morphSpec?.collapsedBottomMargin ?: 0.dp) * state.revealProgress).roundToPx()
+                                } else expansionBounds?.top?.roundToInt() ?: 0
+                                IntOffset(0, if (expansionFrame != null) miniTop else 0)
+                            }
+                            .then(if (expansionFrame != null && !state.isCollapsed) Modifier.clearAndSetSemantics {} else Modifier)
                             .graphicsLayer {
                                 alpha = if (keepExpandedContentComposed) {
                                     PlayerMotionSpec.MiniPlayerExit.reverse(state.progress)
@@ -295,6 +330,7 @@ fun BottomSheet(
                             .clickable(
                                 interactionSource = remember { MutableInteractionSource() },
                                 indication = null,
+                                enabled = expansionFrame == null || state.isCollapsed,
                                 onClick = state::expandSoft
                             ),
                         content = collapsedContent
@@ -303,6 +339,11 @@ fun BottomSheet(
             }
 
             overlayContent()
+            // During a gesture, prevent fading controls from receiving taps. Parent dragging
+            // still handles vertical movement, just as it does over a regular clickable child.
+            if (expansionFrame != null && !state.isCollapsed && !state.isExpanded) {
+                Box(Modifier.fillMaxSize().pointerInput(Unit) { detectTapGestures {} })
+            }
         }
     }
 }

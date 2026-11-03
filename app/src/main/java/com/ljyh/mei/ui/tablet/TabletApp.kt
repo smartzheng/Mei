@@ -26,6 +26,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInRoot
+import com.ljyh.mei.ui.tablet.player.TabletPlayerExpansionState
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
@@ -79,7 +84,11 @@ internal fun TabletApp(appState: MeiAppState, pageMotion: PageNavigationMotion) 
     LaunchedEffect(searchActive) {
         if (searchActive) runCatching { searchFocus.requestFocus() }
     }
-    BoxWithConstraints(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
+    val expansionState = remember { TabletPlayerExpansionState() }
+    var hostOrigin by remember { mutableStateOf(Offset.Zero) }
+    BoxWithConstraints(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)
+        .onGloballyPositioned { hostOrigin = it.positionInRoot() }) {
+        val windowSize = Size(constraints.maxWidth.toFloat(), constraints.maxHeight.toFloat())
         val bars = WindowInsets.systemBars
         val bottom = with(density) { bars.getBottom(this).toDp() }
         val sheet = rememberBottomSheetState(
@@ -90,6 +99,9 @@ internal fun TabletApp(appState: MeiAppState, pageMotion: PageNavigationMotion) 
             savedAnchor = appState.playerSheetAnchor,
         )
         SyncPlayerSheetVisibility(appState.playerConnection, sheet)
+        val expansionOrigin = expansionState.originInHost(hostOrigin, windowSize)
+            ?.takeIf { !searchActive && metadata != null && sheet.revealProgress >= 1f }
+        val ownMini = expansionOrigin != null && (sheet.isCollapsed || sheet.progress > 0f)
         var barHeight by remember {
             mutableStateOf(tabletBarLayout(maxWidth.value, density.fontScale).controlHeight + 24.dp + bottom)
         }
@@ -122,6 +134,14 @@ internal fun TabletApp(appState: MeiAppState, pageMotion: PageNavigationMotion) 
                                     focus.clearFocus()
                                 },
                                 onOpenPlayer = { focus.clearFocus(); sheet.expandSoft() },
+                                miniOwnedByPlayer = ownMini,
+                                onMiniBounds = { surface, artwork ->
+                                    expansionState.recordOrigin(surface, artwork, windowSize,
+                                        canRecord = sheet.isCollapsed && !searchActive)
+                                },
+                                onMiniArtworkReady = { url, painter ->
+                                    if (url == metadata?.coverUrl) expansionState.recordThumbnail(url, painter)
+                                },
                                 onPlayPause = {
                                     val player = connection?.player ?: return@TabletBottomBar
                                     if (player.playbackState == Player.STATE_ENDED) {
@@ -159,7 +179,7 @@ internal fun TabletApp(appState: MeiAppState, pageMotion: PageNavigationMotion) 
                     onDismiss = { appState.searchActive = false; focus.clearFocus() },
                 )
             }
-            TabletPlayerHost(sheet)
+            TabletPlayerHost(sheet, expansionOrigin, expansionState.thumbnailFor(metadata?.coverUrl))
         }
     }
 }

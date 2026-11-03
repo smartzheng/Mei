@@ -15,7 +15,7 @@ MeiAppState / TabletApp
 ```
 
 - `ui/component/player/PlayerHost.kt` 持有现有 `PlayerStateContainer`，沿用原 `PlayerViewModel`、`PlaylistViewModel` 与 `LocalPlayerConnection`。动态封面设置、屏幕常亮、喜欢反馈和 `CommonOverlayHandler` 在这里统一绑定，每个活动外层只有一个播放器入口。
-- 原 `BottomSheetPlayer` 是手机外层适配入口：竖向沿用 `AppleMusicPlayer`，手机横向沿用经典沉浸布局。平板从 `TabletPlayerHost` 直接注入自己的展示，不经过旧经典平板分支。
+- `BottomSheetPlayer` 是手机外层适配入口，统一使用 `AppleMusicPlayer`。手机普通单窗口中全屏播放保持竖屏，旧横屏沉浸布局及经典播放器组件已移除。平板仍从 `TabletPlayerHost` 直接注入自己的展示。
 - `TabletPlayerScreen` 是带业务依赖的绑定层。它读取状态、组装回调，并提供封面、控制区、歌词、队列和评论槽位。导航、ViewModel 与播放连接停留在这一层，不传入平板纯布局函数。
 - `TabletPlayerContract.kt` 中的 `TabletPlayerUiState` 与 `TabletPlayerActions` 只描述展示所需的标题、喜欢状态、面板、颜色与用户操作。`TabletPlayerSlots` 承接已有复杂组件的渲染，不创建第二套音频引擎或数据源。
 - `TabletPlayerContent` 负责几何和交互排列；`TabletPlayerPanels` 只处理转场。旧 `ClassicTabletLayout.kt`、`PlayerTableControls.kt` 和 `PlayerLayoutMode.kt` 已移除。
@@ -36,6 +36,19 @@ MeiAppState / TabletApp
 - 背景复用 `FluidBackground` 的画面保留与切歌过渡。封面底色扩展沿用已有分析设置、缓存和 `CoverEdgeExtensionBackdrop`；黑白前景选择由手机和平板共同的 `playerForegroundForBackground` 决定。
 - 歌词、队列、评论复用原组件。队列与评论在平板背景上使用对应文字对比度；音质、更多、收藏歌单、睡眠定时、分享和下载等弹层继续统一交给 `CommonOverlayHandler`。
 - 面板转场继续使用现有 `TabletAnimationStyle` 设置，包括滑动、淡入淡出、缩放和翻转；系统动画时长缩放由 Compose 动画处理。
+
+## 容器展开
+
+容器展开实现来自 `test/player-container-expansion`，现已将平板接入共用的容器形变与纹理流体背景。业务状态、面板、单双栏排列和路由仍沿用前文结构。
+
+- `TabletApp` 持有 `TabletPlayerExpansionState`，只记录像素边界、窗口尺寸与缓存缩略图 Painter，不持有另一套播放连接，也不保存这些对象到 Bundle。
+- `TabletMiniPlayer` 上报底座与 48dp 封面的未裁剪布局边界。只有 sheet 收起、未搜索时更新；展开期间底栏的下移不会反写起点。尺寸过期或无效时回到既有 Sheet 路径。
+- `TabletPlayerHost` 在有有效起点时可把收起内容放置在实际 mini 区域，原底栏保留占位与图片加载，隐藏重复绘制和操作。实际点击区域由共用 `BottomSheet` 的当前边界限制，不覆盖旁边导航和搜索。
+- 全屏内容始终按完整窗口测量。原封面留在布局内完成加载；转场层仅绘制已加载的同一 Painter 或底栏缓存缩略图，不额外创建高清图片请求或视频播放器。
+- 暂停缩放先作用于封面目标可见边界；过渡结束后交回原封面节点，保留其滚动裁剪、圆形／方形、长按预览和横滑切歌。窄窗口中的小封面也直接连接 mini，不经过大封面尺寸。
+- 平板背景改用 `FluidBackground(clipToContainer = true)`，沿用原 mesh 算法和设置；首帧就绪后渐显。纹理输出由手机实验阶段引入的 EGL 宿主提供。
+
+代码与研究细节见 [容器展开研究](research/player-container-expansion.md)。此路径尚待设备视觉与 GPU 性能验收。
 
 ## 自定义播放操作栏
 

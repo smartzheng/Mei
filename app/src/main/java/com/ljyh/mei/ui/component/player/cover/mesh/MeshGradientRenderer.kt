@@ -407,7 +407,7 @@ class MeshGradientRenderer : GLSurfaceView.Renderer {
         GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, 0)
     }
 
-    fun release() {
+    fun release(clearArtwork: Boolean = false) {
         synchronized(this) {
             for (state in meshStates) {
                 GLES30.glDeleteTextures(1, intArrayOf(state.textureId), 0)
@@ -424,6 +424,13 @@ class MeshGradientRenderer : GLSurfaceView.Renderer {
             }
             if (quadProgram != 0) {
                 GLES30.glDeleteProgram(quadProgram)
+            }
+            if (clearArtwork) {
+                retainedAlbum?.takeUnless { it.isRecycled }?.recycle()
+                retainedAlbum = null
+                pendingAlbum = null
+                retainedAlbumKey = null
+                pendingAlbumKey = null
             }
         }
     }
@@ -472,12 +479,12 @@ class MeshGradientRenderer : GLSurfaceView.Renderer {
         return shader
     }
 }
-class MeshBackgroundView(context: Context) : GLSurfaceView(context) {
+internal class MeshBackgroundView(context: Context) : GLSurfaceView(context), MeshBackgroundControl {
 
     private val renderer = MeshGradientRenderer()
     private var submittedAlbum: Bitmap? = null
     private var submittedAlbumKey: String? = null
-    var onAlbumRendered: ((String) -> Unit)? = null
+    override var onAlbumRendered: ((String) -> Unit)? = null
     private var appliedFlowSpeed = renderer.flowSpeed
     private var appliedRenderScale = renderer.renderScale
     private var appliedSubdivision = renderer.subdivision
@@ -492,7 +499,7 @@ class MeshBackgroundView(context: Context) : GLSurfaceView(context) {
         renderMode = RENDERMODE_CONTINUOUSLY
     }
 
-    fun setAlbum(bitmap: Bitmap, key: String) {
+    override fun setAlbum(bitmap: Bitmap, key: String) {
         if (bitmap.isRecycled || (submittedAlbum === bitmap && submittedAlbumKey == key)) return
         val owned = bitmap.copy(Bitmap.Config.ARGB_8888, false) ?: return
         submittedAlbum = bitmap
@@ -500,32 +507,32 @@ class MeshBackgroundView(context: Context) : GLSurfaceView(context) {
         queueEvent { renderer.setAlbum(owned, key) }
     }
 
-    fun setFlowSpeed(speed: Float) {
+    override fun setFlowSpeed(speed: Float) {
         if (appliedFlowSpeed == speed) return
         appliedFlowSpeed = speed
         renderer.flowSpeed = speed
     }
 
-    fun setRenderScale(scale: Float) {
+    override fun setRenderScale(scale: Float) {
         if (appliedRenderScale == scale) return
         appliedRenderScale = scale
         renderer.renderScale = scale
         queueEvent { renderer.rebuildFbo() }
     }
 
-    fun setSubdivision(level: Int) {
+    override fun setSubdivision(level: Int) {
         if (appliedSubdivision == level) return
         appliedSubdivision = level
         renderer.subdivision = level
     }
 
-    fun setStaticMode(enable: Boolean) {
+    override fun setStaticMode(enable: Boolean) {
         if (appliedStaticMode == enable) return
         appliedStaticMode = enable
         queueEvent { renderer.setStaticMode(enable) }
     }
 
-    fun setPlaying(playing: Boolean) {
+    override fun setPlaying(playing: Boolean) {
         if (appliedPlaying == playing) return
         appliedPlaying = playing
         renderer.setPlaying(playing)

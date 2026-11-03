@@ -25,6 +25,9 @@ import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalDensity
@@ -56,6 +59,9 @@ internal fun TabletBottomBar(
     onSearchToggle: () -> Unit,
     onQueryChange: (TextFieldValue) -> Unit,
     onSubmit: (String) -> Unit,
+    miniOwnedByPlayer: Boolean = false,
+    onMiniBounds: ((Rect, Rect) -> Unit)? = null,
+    onMiniArtworkReady: (String, Painter) -> Unit = { _, _ -> },
 ) {
     val enabled = visibility >= 0.99f
     BoxWithConstraints(
@@ -97,11 +103,15 @@ internal fun TabletBottomBar(
                     metadata = metadata,
                     playing = playing,
                     canSkipNext = canSkipNext,
-                    enabled = enabled,
+                    enabled = enabled && !miniOwnedByPlayer,
                     onOpen = onOpenPlayer,
                     onPlayPause = onPlayPause,
                     onNext = onNext,
-                    modifier = Modifier.width(layout.playerWidth).height(layout.controlHeight),
+                    modifier = Modifier.width(layout.playerWidth).height(layout.controlHeight)
+                        .graphicsLayer { alpha = if (miniOwnedByPlayer) 0f else 1f }
+                        .then(if (miniOwnedByPlayer) Modifier.clearAndSetSemantics {} else Modifier),
+                    onBounds = onMiniBounds,
+                    onArtworkReady = onMiniArtworkReady,
                 )
             }
             Spacer(Modifier.width(12.dp))
