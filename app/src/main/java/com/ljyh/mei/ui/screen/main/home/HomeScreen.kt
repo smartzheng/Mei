@@ -131,10 +131,21 @@ fun HomeScreen(
     val userId by rememberPreference(UserIdKey, "")
     val sortedBlocks = remember(homePageResourceShowPage1) {
         val result = homePageResourceShowPage1
-        if (result is Resource.Success) result.data.sortedWith(homeResourcePositionComparator)
+        if (result is Resource.Success) result.data
         else emptyList()
     }
-    val isRefreshing by remember { mutableStateOf(false) }
+    val isRefreshing by viewModel.refreshing.collectAsState()
+    val loadingMore by viewModel.loadingMore.collectAsState()
+    val refreshError by viewModel.refreshError.collectAsState()
+    val loadMoreError by viewModel.loadMoreError.collectAsState()
+    val hasMore by viewModel.hasMore.collectAsState()
+    val nearEnd by remember { derivedStateOf {
+        val layout = listState.layoutInfo
+        layout.totalItemsCount > 0 && (layout.visibleItemsInfo.lastOrNull()?.index ?: 0) >= layout.totalItemsCount - 3
+    } }
+    LaunchedEffect(nearEnd, hasMore, loadingMore, loadMoreError, sortedBlocks.size) {
+        if (nearEnd && hasMore && !loadingMore && !loadMoreError) viewModel.loadMore()
+    }
     val device = rememberDeviceInfo()
 
     // 滚动到顶部逻辑
@@ -146,7 +157,7 @@ fun HomeScreen(
     }
 
     LaunchedEffect(userId) {
-        viewModel.homePageResourceShow()
+        viewModel.homePageResourceShow(userId = userId)
     }
 
     val playerAwarePadding = LocalPlayerAwareWindowInsets.current.asPaddingValues()
@@ -225,6 +236,18 @@ fun HomeScreen(
                                 item(key = "home_loading") { HomeShimmer(viewModel = viewModel) }
                             }
                         }
+                        if (homePageResourceShowPage1 is Resource.Success) {
+                            item(key = "home_pagination") {
+                                Box(Modifier.fillMaxWidth().padding(16.dp), contentAlignment = Alignment.Center) {
+                                    when {
+                                        refreshError -> TextButton(onClick = { viewModel.homePageResourceShow(true) }) { Text("刷新失败，点击重试") }
+                                        loadingMore -> androidx.compose.material3.CircularProgressIndicator(Modifier.size(24.dp))
+                                        loadMoreError -> TextButton(onClick = { viewModel.loadMore() }) { Text("加载失败，点击重试") }
+                                        hasMore -> TextButton(onClick = { viewModel.loadMore() }) { Text("加载更多") }
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -257,9 +280,13 @@ private fun HomeBlockItem(
     var preparingIntelligence by remember { mutableStateOf(false) }
 
     // 解析逻辑缓存，只要 block 不变，就不会重新解析 JSON
+    if (block.positionCode in setOf("PAGE_RECOMMEND_BANNER_1", "PAGE_RECOMMEND_SHORTCUT", "PAGE_RECOMMEND_ARTIST_TREND", "PAGE_RECOMMEND_PODCAST_RADIO_PROGRAM")) {
+        HomeAdditionalBlock(block, navController, playlistCardSize)
+        return
+    }
     val blockData = remember(block) {
         Timber.tag("Block").d(block.positionCode)
-        selectSpecialField(block.dslData)
+        block.dslData?.let { selectSpecialField(it) }
     } ?: return
 
     Timber.tag("Block").d(block.positionCode)
@@ -379,6 +406,8 @@ private fun HomeBlockItem(
         "PAGE_RECOMMEND_FEELING_PLAYLIST_LOCATION",
         "PAGE_RECOMMEND_SCENE_PLAYLIST_LOCATION",
         "PAGE_RECOMMEND_MONTH_YEAR_PLAYLIST",
+        "PAGE_RECOMMEND_FIRM_PLAYLIST",
+        "PAGE_RECOMMEND_NEW_SONG_AND_ALBUM",
 
             -> {
             // 将这些相似的逻辑合并处理，减少代码重复

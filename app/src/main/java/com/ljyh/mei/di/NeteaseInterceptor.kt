@@ -90,7 +90,8 @@ class NeteaseInterceptor : Interceptor {
             .removeHeader(CRYPTO_MODE_HEADER)
 
         val config = when {
-            cryptoMode == "xeapi" || url.contains("/eapi/bsr/sk/get") -> XEAPI_CONFIG
+            cryptoMode == "xeapi" || url.contains("/eapi/bsr/sk/get") ||
+                originalRequest.url.encodedPath == "/eapi/ad/device/deviceid" -> XEAPI_CONFIG
             cryptoMode == "eapi" -> EAPI_CONFIG
             else -> ANDROID_CONFIG
         }
