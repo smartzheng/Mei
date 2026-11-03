@@ -85,9 +85,9 @@ flowchart TD
 
 ### 应用外层：底栏和全屏层如何放置
 
-`MeiApp` 测量扣除左右系统安全区后的可用宽度，通过 `AppWindowLayout` 选择紧凑或宽布局，当前断点为 600dp。
+`MeiApp` 统一决定应用外层：系统配置的最小宽度（`Configuration.smallestScreenWidthDp`）与扣除左右系统安全区后的当前可用宽度均达到 600dp 时，`AppWindowLayout` 才选择宽布局。手机横屏即使当前宽度超过 600dp，也保留 `PhoneApp`，不进入平板页面集合。最小宽度随折叠／窗口配置变化重新读取，不在首次进入时缓存设备分类。
 
-`PhoneApp` 与 `TabletApp` 分别管理自己的底栏、搜索焦点、IME 避让和播放器几何。`MeiPageLayout` 跟随外层选择提供 20dp／28dp 公共内容边距。不要在每个页面重新计算一套手机／平板分类来决定公共边距。
+`PhoneApp` 与 `TabletApp` 分别管理自己的底栏、搜索焦点、IME 避让和播放器几何。手机普通单窗口始终保持竖屏，全屏播放也不再放开方向；`BottomSheetPlayer` 统一使用 `AppleMusicPlayer`，旧手机横屏沉浸布局及其经典播放器组件已移除。多窗口保留系统方向策略，但不另选一套手机播放器。`MeiPageLayout` 跟随外层选择提供 20dp／28dp 公共内容边距。不要在每个页面重新计算一套手机／平板分类来决定公共边距。
 
 ### 页面集合：某个功能是否需要另一套内容结构
 
@@ -194,6 +194,7 @@ USB Rust 工程位于 `app/src/main/rust/mei-usb-core/`；C++ 原生入口在 `a
 | 协作与当前 UI 约束 | [AGENTS.md](../AGENTS.md) |
 | 平板外层与页面接入 | [tablet-ui.md](tablet-ui.md) |
 | 平板全屏播放器、共享状态与面板 | [tablet-player.md](tablet-player.md) |
+| mini → 全屏容器展开 | [研究与原型](research/player-container-expansion.md)；手机竖屏、平板及纹理流体背景已接入，待设备验收 |
 | 音乐库、歌手与专辑的平板内容边界 | [tablet-content-pages.md](tablet-content-pages.md) |
 | 歌单展示、布局与状态恢复 | [playlist-detail-architecture.md](playlist-detail-architecture.md) |
 | 综合搜索、分类分页与结果状态 | [search-results.md](search-results.md) |

@@ -20,6 +20,15 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInRoot
+import androidx.compose.ui.unit.toSize
+import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -45,14 +54,23 @@ internal fun TabletMiniPlayer(
     onPlayPause: () -> Unit,
     onNext: () -> Unit,
     modifier: Modifier = Modifier,
+    drawSurface: Boolean = true,
+    drawCover: Boolean = true,
+    onBounds: ((Rect, Rect) -> Unit)? = null,
+    onArtworkReady: (String, Painter) -> Unit = { _, _ -> },
 ) {
     val colors = MaterialTheme.colorScheme
     val title = rememberPlayerDisplayTitle(metadata?.title.orEmpty())
-    MeiGlassSurface(
-        modifier = modifier,
-        shape = RoundedCornerShape(24.dp),
-        solidColor = colors.secondaryContainer,
-    ) {
+    var surfaceBounds by remember { mutableStateOf<Rect?>(null) }
+    var artworkBounds by remember { mutableStateOf<Rect?>(null) }
+    val surfaceModifier = modifier.onGloballyPositioned {
+        if (onBounds != null) {
+            val bounds = Rect(it.positionInRoot(), it.size.toSize())
+            surfaceBounds = bounds
+            artworkBounds?.let { artwork -> onBounds(bounds, artwork) }
+        }
+    }
+    val body: @Composable () -> Unit = {
         Row(
             Modifier.fillMaxWidth().fillMaxHeight()
                 .clickable(enabled = enabled && metadata != null, role = Role.Button, onClick = onOpen)
@@ -60,15 +78,23 @@ internal fun TabletMiniPlayer(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Box(
-                Modifier.size(48.dp).clip(RoundedCornerShape(12.dp)).background(colors.surfaceContainerHigh),
+                Modifier.size(48.dp).onGloballyPositioned {
+                    if (onBounds != null) {
+                        val bounds = Rect(it.positionInRoot(), it.size.toSize())
+                        artworkBounds = bounds
+                        surfaceBounds?.let { surface -> onBounds(surface, bounds) }
+                    }
+                }.clip(RoundedCornerShape(12.dp))
+                    .then(if (drawCover) Modifier.background(colors.surfaceContainerHigh) else Modifier),
                 contentAlignment = Alignment.Center,
             ) {
-                if (metadata?.coverUrl?.isNotBlank() == true) AsyncImage(
+                if (drawCover && metadata?.coverUrl?.isNotBlank() == true) AsyncImage(
                     model = metadata.coverUrl,
                     contentDescription = null,
                     contentScale = ContentScale.Crop,
+                    onSuccess = { onArtworkReady(metadata.coverUrl, it.painter) },
                     modifier = Modifier.size(48.dp),
-                ) else Icon(Icons.Rounded.MusicNote, null, Modifier.size(24.dp))
+                ) else if (drawCover) Icon(Icons.Rounded.MusicNote, null, Modifier.size(24.dp))
             }
             Column(Modifier.weight(1f).padding(horizontal = 12.dp)) {
                 Text(
@@ -94,4 +120,9 @@ internal fun TabletMiniPlayer(
             }
         }
     }
+    if (drawSurface) MeiGlassSurface(
+        modifier = surfaceModifier, shape = RoundedCornerShape(24.dp), solidColor = colors.secondaryContainer,
+    ) { body() }
+    else Box(surfaceModifier) { body() }
+
 }

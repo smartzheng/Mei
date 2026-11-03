@@ -15,6 +15,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
@@ -52,6 +53,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.lerp
@@ -94,6 +102,8 @@ import com.ljyh.mei.ui.component.player.overlay.OverlayState
 import com.ljyh.mei.ui.component.player.overlay.PlayerOverlayHandler
 import com.ljyh.mei.ui.component.player.state.PlayerStateContainer
 import com.ljyh.mei.ui.component.sheet.BottomSheet
+import com.ljyh.mei.ui.component.sheet.playerContainerFrame
+import com.ljyh.mei.ui.component.glass.LocalMeiGlassEnabled
 import com.ljyh.mei.ui.component.sheet.BottomSheetContainerMotion
 import com.ljyh.mei.ui.component.sheet.BottomSheetMorphSpec
 import com.ljyh.mei.ui.component.sheet.BottomSheetState
@@ -302,10 +312,27 @@ fun AppleMusicPlayer(
         }
     }
 
-    BoxWithConstraints(modifier = modifier.fillMaxSize()) {
+    var hostOrigin by remember { mutableStateOf(Offset.Zero) }
+    var miniBoundsInRoot by remember { mutableStateOf<Rect?>(null) }
+    var miniWindowSize by remember { mutableStateOf<Size?>(null) }
+    var miniArtwork by remember { mutableStateOf<Pair<String, Painter>?>(null) }
+    val miniArtworkPainter = miniArtwork?.takeIf { it.first == coverUrl }?.second
+    val sharedArtworkReady = miniOverlayReady || miniArtworkPainter != null
+    var frozenMiniCompact by remember { mutableStateOf(compactProgress) }
+    SideEffect { if (state.isCollapsed) frozenMiniCompact = compactProgress }
+    BoxWithConstraints(modifier = modifier.fillMaxSize().onGloballyPositioned { hostOrigin = it.positionInRoot() }) {
         val screenWidth = maxWidth
+        val fullHostHeight = maxHeight
         val maxWidthPx = constraints.maxWidth.toFloat()
         val maxHeightPx = constraints.maxHeight.toFloat()
+        val windowSize = Size(maxWidthPx, maxHeightPx)
+        // Freeze the measured mini while expanding; a resized window uses the legacy sheet
+        // until the mini has been laid out again at its new collapsed endpoint.
+        val measuredMini = miniBoundsInRoot?.takeIf { miniWindowSize == windowSize }?.translate(-hostOrigin)
+        val expansion = if (state.revealProgress >= 1f) playerContainerFrame(
+            measuredMini, windowSize, sheetProgress, with(density) { (MiniPlayerBarHeight / 2).toPx() },
+        ) else null
+        val useContainerExpansion = expansion != null
 
         // --- 响应式布局判断 ---
         val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
@@ -316,9 +343,11 @@ fun AppleMusicPlayer(
         // A. Mini player artwork shares the floating bar inset.
         val miniSize = with(density) { MiniPlayerCoverSize.toPx() }
         val miniMargin = miniPlayerHorizontalMargin(meiPageGutter(), compactProgress)
-        val miniStart = with(density) { (miniMargin + 16.dp).toPx() }
+        val miniStart = if (useContainerExpansion) measuredMini!!.left + with(density) { 16.dp.toPx() }
+            else with(density) { (miniMargin + 16.dp).toPx() }
         val miniRadius = with(density) { MiniPlayerCoverCornerRadius.toPx() }
-        val miniTop = with(density) { ((MiniPlayerBarHeight - MiniPlayerCoverSize) / 2).toPx() }
+        val miniTop = with(density) { ((MiniPlayerBarHeight - MiniPlayerCoverSize) / 2).toPx() } +
+            if (useContainerExpansion) measuredMini!!.top else 0f
 
         // B. Normal Expanded
         val topSafeArea = with(density) { WindowInsets.statusBars.getTop(this).toFloat() }
@@ -370,10 +399,17 @@ fun AppleMusicPlayer(
         // The graphics layer scales around its center. Interpolate the visible artwork bounds,
         // then convert back to the layer's layout bounds; otherwise the shrinking scale adds a
         // second vertical motion near the lyric header (and on the way back).
-        val lyricCoverProgress = coverProgress * lyricAnimFraction
-        val visualSize = lerp(expandedVisualSize, headerSize, lyricCoverProgress)
-        val visualTop = lerp(expandedTop - expandedVisualInset, headerTop, lyricCoverProgress)
-        val visualStart = lerp(expandedStart - expandedVisualInset, headerStart, lyricCoverProgress)
+        val visualBounds = resolveAppleArtworkBounds(
+            miniBounds = Rect(Offset(miniStart, miniTop), Size(miniSize, miniSize)),
+            normalPathBounds = Rect(Offset(expandedStart - expandedVisualInset, expandedTop - expandedVisualInset),
+                Size(expandedVisualSize, expandedVisualSize)),
+            headerBounds = Rect(Offset(headerStart, headerTop), Size(headerSize, headerSize)),
+            sheetProgress = coverProgress,
+            headerProgress = lyricAnimFraction,
+        )
+        val visualSize = visualBounds.width
+        val visualTop = visualBounds.top
+        val visualStart = visualBounds.left
         val coverScale = 1f + (playingCoverScale - 1f) * expandedCoverFraction
         val finalSize = visualSize / coverScale
         val finalInset = (visualSize - finalSize) / 2f
@@ -406,7 +442,10 @@ fun AppleMusicPlayer(
         BottomSheet(
             state = state,
             modifier = Modifier.fillMaxSize(),
-            backgroundColor = Color.Transparent,
+            backgroundColor = if (useContainerExpansion)
+                lerp(MaterialTheme.colorScheme.secondaryContainer, Color(0xFF202024), sheetProgress) else Color.Transparent,
+            expansionBounds = measuredMini.takeIf { useContainerExpansion },
+            expansionRadius = MiniPlayerBarHeight / 2,
             morphSpec = BottomSheetMorphSpec(
                 collapsedHorizontalMargin = 0.dp,
                 collapsedCornerRadius = MiniPlayerCornerRadius,
@@ -435,27 +474,40 @@ fun AppleMusicPlayer(
                 }
             },
             collapsedContent = {
-                MiniPlayerBarContent(
-                    title = mediaMetadata?.title,
-                    artist = mediaMetadata?.artists?.joinToString { it.name },
-                    coverUrl = mediaMetadata?.coverUrl,
-                    isPlaying = isPlaying,
-                    canSkipNext = stateContainer.canSkipNext.value,
-                    onClick = state::expandSoft,
-                    onPlayPause = {
-                        val player = stateContainer.playerConnection.player
-                        if (playbackState == androidx.media3.common.Player.STATE_ENDED) {
-                            player.seekTo(0, 0)
-                            player.playWhenReady = true
-                        } else {
-                            if (isPlaying) player.pause() else player.play()
-                        }
-                    },
-                    onNext = stateContainer.playerConnection::seekToNext,
-                    drawCover = true,
-                    bottomInset = miniPlayerBottomInset,
-                    compactProgress = compactProgress,
-                )
+                CompositionLocalProvider(LocalMeiGlassEnabled provides false) {
+                    MiniPlayerBarContent(
+                        title = mediaMetadata?.title,
+                        artist = mediaMetadata?.artists?.joinToString { it.name },
+                        coverUrl = mediaMetadata?.coverUrl,
+                        isPlaying = isPlaying,
+                        canSkipNext = stateContainer.canSkipNext.value,
+                        onClick = state::expandSoft,
+                        onPlayPause = {
+                            val player = stateContainer.playerConnection.player
+                            if (playbackState == androidx.media3.common.Player.STATE_ENDED) {
+                                player.seekTo(0, 0)
+                                player.playWhenReady = true
+                            } else {
+                                if (isPlaying) player.pause() else player.play()
+                            }
+                        },
+                        onNext = stateContainer.playerConnection::seekToNext,
+                        drawCover = !sharedArtworkReady,
+                        onArtworkReady = { url, painter ->
+                            if (url == coverUrl) miniArtwork = url to painter
+                        },
+                        drawSurface = !useContainerExpansion,
+                        enabled = state.isCollapsed,
+                        onSurfaceBounds = { bounds ->
+                            if (state.isCollapsed) {
+                                miniBoundsInRoot = bounds
+                                miniWindowSize = windowSize
+                            }
+                        },
+                        bottomInset = miniPlayerBottomInset,
+                        compactProgress = if (useContainerExpansion && !state.isCollapsed) frozenMiniCompact else compactProgress,
+                    )
+                }
             },
             overlayContent = {
                 mediaMetadata?.let { currentMedia ->
@@ -465,7 +517,7 @@ fun AppleMusicPlayer(
                                 // The collapsed bar already has the cached thumbnail. Keep it
                                 // visible until the full-size overlay for this song is ready.
                                 alpha = state.revealProgress * (1f - portraitAlpha) *
-                                    if (state.isExpanded || miniOverlayReady) 1f else 0f
+                                    if (state.isExpanded || sharedArtworkReady) 1f else 0f
                                 translationX = finalStart
                                 translationY = finalTop
                                 scaleX = coverScale
@@ -500,6 +552,12 @@ fun AppleMusicPlayer(
                         }
                         val artworkRequest = rememberPlayerArtworkRequest(currentMetadata.coverUrl, originalCover)
                             ?.newBuilder()?.crossfade(false)?.build()
+                        // Move the already drawn thumbnail until the full request succeeds;
+                        // no extra thumbnail request or network wait is introduced here.
+                        if (!miniOverlayReady && miniArtworkPainter != null) Image(
+                            painter = miniArtworkPainter, contentDescription = null,
+                            contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize(),
+                        )
                         PlayerArtworkImage(
                             artworkKey = currentMetadata.coverUrl,
                             request = artworkRequest,
@@ -539,14 +597,14 @@ fun AppleMusicPlayer(
             },
         ) {
             Box(Modifier.fillMaxSize()) {
-                // This OpenGL surface now keeps its full-screen size for the entire transition. The
-                // sheet moves as one fixed page, avoiding the SurfaceView resize seam seen on devices.
+                // The native texture keeps a full-screen viewport while the outer capsule expands.
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(playerBackgroundHeight)
+                        .height(if (useContainerExpansion) fullHostHeight else playerBackgroundHeight)
                         .graphicsLayer { alpha = sheetProgress }
-                        .background(if (state.isExpanded && staticArtworkReady && portraitCover == null &&
+                        .background(if (useContainerExpansion) Color.Transparent
+                        else if (state.isExpanded && staticArtworkReady && portraitCover == null &&
                             portraitAlpha < 0.001f && coverEdgeColor != null && edgeExtensionAlpha > 0.001f
                         ) coverEdgeColor else lerp(
                             portraitBackdropState.edgeColor ?: portraitFallbackColor,
@@ -554,14 +612,13 @@ fun AppleMusicPlayer(
                             fluidReveal,
                         )),
                 )
-                // A GLSurfaceView cannot be hidden reliably with alpha; keep it out of the
-                // collapsed width so it cannot paint a sheet-like rectangle beside the capsule.
                 if (sheetProgress > 0f) {
                     FluidBackground(
                         imageUrl = coverUrl,
                         isPlaying = isPlaying,
                         renderAlpha = meshBackgroundAlpha * fluidReveal * (1f - edgeExtensionAlpha),
                         onRenderedArtworkChange = { readyFluidUrl = it },
+                        clipToContainer = true,
                     )
                 }
                 coverEdgeArtwork?.let { artwork ->

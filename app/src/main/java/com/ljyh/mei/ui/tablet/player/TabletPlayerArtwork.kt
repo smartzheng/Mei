@@ -13,6 +13,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
 import com.ljyh.mei.constants.CoverStyle
@@ -37,20 +38,23 @@ internal fun TabletPlayerArtwork(
     onReady: (String) -> Unit, onDynamicError: () -> Unit,
     edgeArtwork: CoverEdgeArtwork? = null, edgeAlpha: Float = 0f,
     onPrevious: () -> Unit = {}, onNext: () -> Unit = {},
+    playbackScale: Float? = null,
+    interactive: Boolean = true,
+    onPainterReady: (String, Painter) -> Unit = { _, _ -> },
 ) {
     val original by rememberPreference(OriginalCoverKey, false)
     val style by rememberEnumPreference(CoverStyleKey, CoverStyle.Square)
     val shape = if (style == CoverStyle.Circle) CircleShape else RoundedCornerShape(12.dp)
-    val scale by animateFloatAsState(if (playing) 1f else .9f,
-        animationSpec = PlayerMotionSpec.CoverPlayStateSpring, label = "TabletCoverScale")
+    val scale = playbackScale ?: animateFloatAsState(if (playing) 1f else .9f,
+        animationSpec = PlayerMotionSpec.CoverPlayStateSpring, label = "TabletCoverScale").value
     var preview by remember { mutableStateOf(false) }
     Box(modifier, contentAlignment = Alignment.Center) {
         if (metadata != null) Box(Modifier.fillMaxSize().graphicsLayer { scaleX = scale; scaleY = scale }
-            .shadow(12.dp, shape).clip(shape).coverEdgeFeather(edgeArtwork, edgeAlpha).pointerInput(metadata.coverUrl) {
-                detectTapGestures(onLongPress = { preview = true })
-            }.pointerInput(onPrevious, onNext) {
+            .shadow(12.dp, shape).clip(shape).coverEdgeFeather(edgeArtwork, edgeAlpha).pointerInput(metadata.coverUrl, interactive) {
+                if (interactive) detectTapGestures(onLongPress = { preview = true })
+            }.pointerInput(onPrevious, onNext, interactive) {
                 var distance = 0f
-                detectHorizontalDragGestures(
+                if (interactive) detectHorizontalDragGestures(
                     onDragStart = { distance = 0f },
                     onHorizontalDrag = { change, amount -> change.consume(); distance += amount },
                     onDragEnd = {
@@ -60,7 +64,8 @@ internal fun TabletPlayerArtwork(
                 )
             }) {
             PlayerArtworkImage(metadata.coverUrl, rememberPlayerArtworkRequest(metadata.coverUrl, original),
-                Modifier.fillMaxSize(), onSuccess = { onReady(metadata.coverUrl) })
+                Modifier.fillMaxSize(), onSuccess = { onReady(metadata.coverUrl) },
+                onPainterReady = { onPainterReady(metadata.coverUrl, it) })
             if (dynamicCover?.songId == metadata.id) DynamicCoverView(
                 imageUrl = metadata.coverUrl, cover = dynamicCover, playing = playing,
                 originalArtwork = original, playerArtwork = true,

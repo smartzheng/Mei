@@ -17,6 +17,9 @@ import com.ljyh.mei.constants.MeshRenderScaleKey
 import com.ljyh.mei.constants.MeshStaticModeKey
 import com.ljyh.mei.constants.MeshSubdivisionKey
 import com.ljyh.mei.ui.component.player.cover.mesh.MeshBackgroundView
+import com.ljyh.mei.ui.component.player.cover.mesh.MeshBackgroundControl
+import com.ljyh.mei.ui.component.player.cover.mesh.MeshTextureView
+import android.view.View
 import com.ljyh.mei.utils.image.ArtworkSize
 import com.ljyh.mei.utils.preferences.rememberPreference
 import kotlinx.coroutines.Dispatchers
@@ -32,11 +35,11 @@ fun FluidBackground(
     renderAlpha: Float = 1f,
     // Reports the artwork actually drawn by this View; null means the View was released.
     onRenderedArtworkChange: ((String?) -> Unit)? = null,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    clipToContainer: Boolean = false,
 ) {
     val context = LocalContext.current
     val artworkListener by rememberUpdatedState(onRenderedArtworkChange)
-    var hasRenderedFrame by remember { mutableStateOf(false) }
     val (flowSpeed) = rememberPreference(MeshFlowSpeedKey, defaultValue = 0.25f)
     val (renderScale) = rememberPreference(MeshRenderScaleKey, defaultValue = 0.75f)
     val (staticMode) = rememberPreference(MeshStaticModeKey, defaultValue = false)
@@ -68,43 +71,46 @@ fun FluidBackground(
     // 2. 组装当前需要传递给 View 的所有状态
     val shouldAnimate = !meshPlaying || isPlaying
 
-    // 3. 去掉过于严格的版本限制 (只要设备存在就能初始化，低端机 GLES 3.0 兼容性极好)
-    // 如果你想绝对保险，可以写 >= Build.VERSION_CODES.LOLLIPOP (21)
-    AndroidView(
-        factory = { ctx ->
-            MeshBackgroundView(ctx).apply {
-                onAlbumRendered = {
-                    hasRenderedFrame = true
-                    artworkListener?.invoke(it)
+    key(clipToContainer) {
+        var hasRenderedFrame by remember { mutableStateOf(false) }
+        AndroidView(
+            factory = { ctx ->
+                val view: View = if (clipToContainer) MeshTextureView(ctx) else MeshBackgroundView(ctx)
+                (view as MeshBackgroundControl).apply {
+                    onAlbumRendered = {
+                        hasRenderedFrame = true
+                        artworkListener?.invoke(it)
+                    }
+                    setFlowSpeed(flowSpeed)
+                    setRenderScale(renderScale)
+                    setSubdivision(subdivision)
+                    setStaticMode(staticMode)
+                    setPlaying(shouldAnimate)
                 }
-                // 初始化时的默认值
-                setFlowSpeed(flowSpeed)
-                setRenderScale(renderScale)
-                setSubdivision(subdivision)
-                setStaticMode(staticMode)
-                setPlaying(shouldAnimate)
-                setPreserveEGLContextOnPause(true)
-            }
-        },
-        onRelease = { view ->
-            // Ignore queued GL callbacks from a released View, and wait for the first real
-            // frame when a new View is created after collapsing/reopening the player.
-            view.onAlbumRendered = null
-            hasRenderedFrame = false
-            artworkListener?.invoke(null)
-        },
-        update = { view ->
-            // An interrupted reveal animation may still have nonzero alpha after reopening.
-            // Never expose a new Surface's empty buffer before its first rendered frame.
-            view.alpha = if (hasRenderedFrame) renderAlpha.coerceIn(0f, 1f) else 0f
-            albumArtwork?.let { artwork -> view.setAlbum(artwork.bitmap, artwork.url) }
-
-            view.setFlowSpeed(flowSpeed)
-            view.setRenderScale(renderScale)
-            view.setSubdivision(subdivision)
-            view.setStaticMode(staticMode)
-            view.setPlaying(shouldAnimate)
-        },
-        modifier = modifier.fillMaxSize()
-    )
+                if (view is MeshBackgroundView) view.setPreserveEGLContextOnPause(true)
+                view.alpha = 0f
+                view
+            },
+            onRelease = { view ->
+                (view as MeshBackgroundControl).apply {
+                    onAlbumRendered = null
+                    dispose()
+                }
+                hasRenderedFrame = false
+                artworkListener?.invoke(null)
+            },
+            update = { view ->
+                view.alpha = if (hasRenderedFrame) renderAlpha.coerceIn(0f, 1f) else 0f
+                (view as MeshBackgroundControl).apply {
+                    albumArtwork?.let { artwork -> setAlbum(artwork.bitmap, artwork.url) }
+                    setFlowSpeed(flowSpeed)
+                    setRenderScale(renderScale)
+                    setSubdivision(subdivision)
+                    setStaticMode(staticMode)
+                    setPlaying(shouldAnimate)
+                }
+            },
+            modifier = modifier.fillMaxSize(),
+        )
+    }
 }

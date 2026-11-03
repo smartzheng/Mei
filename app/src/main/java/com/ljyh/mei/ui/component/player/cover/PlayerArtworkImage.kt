@@ -25,6 +25,7 @@ internal fun PlayerArtworkImage(
     modifier: Modifier = Modifier,
     onSuccess: () -> Unit = {},
     onError: () -> Unit = {},
+    onPainterReady: (Painter) -> Unit = {},
 ) {
     var lastArtwork by remember { mutableStateOf<Pair<String, Painter>?>(null) }
     Box(modifier.clipToBounds()) {
@@ -44,6 +45,7 @@ internal fun PlayerArtworkImage(
                 contentScale = ContentScale.Crop,
                 onSuccess = { result ->
                     lastArtwork = artworkKey to result.painter
+                    onPainterReady(result.painter)
                     onSuccess()
                 },
                 onError = {
@@ -60,7 +62,7 @@ internal fun PlayerArtworkImage(
  * Keep the bitmap's sampling boundary outside the final clip, including while the cover scales.
  * One drawing pixel per edge is sufficient; the layout and shared cover coordinates stay intact.
  */
-private fun Modifier.fillArtworkEdges(): Modifier = drawWithContent {
+internal fun Modifier.fillArtworkEdges(): Modifier = drawWithContent {
     if (size.width > 0f && size.height > 0f) {
         scale(
             scaleX = (size.width + 2f) / size.width,

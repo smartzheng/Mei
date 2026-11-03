@@ -20,6 +20,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import com.ljyh.mei.constants.DefaultThemeColor
@@ -39,7 +40,6 @@ import com.ljyh.mei.ui.component.layout.AppWindowLayout
 import com.ljyh.mei.ui.component.layout.LocalAppWindowLayout
 import com.ljyh.mei.ui.component.layout.appWindowLayout
 import com.ljyh.mei.ui.component.player.state.rememberPlayerConnection
-import com.ljyh.mei.ui.component.sheet.expandedAnchor
 import com.ljyh.mei.ui.component.utils.rememberBatteryIntensiveFeaturesAllowed
 import com.ljyh.mei.ui.local.LocalDatabase
 import com.ljyh.mei.ui.local.LocalNavController
@@ -107,10 +107,12 @@ fun MeiApp(
                 val direction = LocalLayoutDirection.current
                 val safe = WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal).asPaddingValues()
                 val availableWidth = maxWidth - safe.calculateLeftPadding(direction) - safe.calculateRightPadding(direction)
-                val layout = appWindowLayout(availableWidth.value)
+                val layout = appWindowLayout(
+                    availableWidthDp = availableWidth.value,
+                    smallestWidthDp = LocalConfiguration.current.smallestScreenWidthDp,
+                )
                 val activity = context as? Activity
-                val freeOrientation = layout == AppWindowLayout.Wide ||
-                    appState.playerSheetAnchor.intValue == expandedAnchor || activity?.isInMultiWindowMode == true
+                val freeOrientation = layout == AppWindowLayout.Wide || activity?.isInMultiWindowMode == true
                 val orientation = if (freeOrientation) ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED else ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
                 SideEffect {
                     if (activity != null && activity.requestedOrientation != orientation) activity.requestedOrientation = orientation
