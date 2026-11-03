@@ -5,11 +5,23 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import com.ljyh.mei.AppContext
-import com.ljyh.mei.constants.AndroidIdKey
 import com.ljyh.mei.constants.AndroidUserAgent
+import com.ljyh.mei.constants.UserIdKey
+import android.app.ActivityManager
+import android.content.Context
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
+import android.os.Build
+import android.os.Environment
+import android.os.StatFs
+import android.telephony.TelephonyManager
+import android.system.Os
+import java.io.File
+import java.net.URLEncoder
+import kotlin.random.Random
 import com.ljyh.mei.utils.preferences.dataStore
 import com.ljyh.mei.utils.preferences.get
-import com.ljyh.mei.utils.netease.NeteaseUtils.getAndroidId
+import com.ljyh.mei.utils.netease.getDeviceId
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
@@ -33,7 +45,8 @@ data class GetHomePageResourceShow(
     @SerialName("reqTimeStamp") val reqTimeStamp: String,
     @SerialName("clientTime") val clientTime: String,
     @SerialName("ruleJson") val ruleJson: String,
-    @SerialName("algDemoteBlockCodeOrderList") val algDemoteBlockCodeOrderList: String,
+    @SerialName("algDemoteBlockCodeOrderList") val algDemoteBlockCodeOrderList: String?,
+    @SerialName("blockCodeOrderList") val blockCodeOrderList: String? = null,
     @SerialName("header") val header: String,
     @SerialName("e_r") val eR: Boolean
 )
@@ -53,9 +66,15 @@ data class AdExtJson(
     @SerialName("memory") val memory: String,
     @SerialName("disk") val disk: String,
     @SerialName("mobilename") val mobilename: String,
-    @SerialName("ipv4") val ipv4: String,
-    @SerialName("ipv6") val ipv6: String,
+    @SerialName("ipv4") val ipv4: String?,
+    @SerialName("ipv6") val ipv6: String?,
     @SerialName("android_id") val androidId: String,
+    @SerialName("imei") val imei: String,
+    @SerialName("adDeviceId") val adDeviceId: String? = null,
+    @SerialName("extDevJson") val extDevJson: String,
+    @SerialName("oaid") val oaid: String? = null,
+    @SerialName("verCodeOfHms") val verCodeOfHms: Long? = null,
+    @SerialName("verCodeOfAG") val verCodeOfAG: Long? = null,
     @SerialName("manufacturer") val manufacturer: String,
     @SerialName("lbs") val lbs: String,
     @SerialName("opensdkVer") val opensdkVer: Int,
@@ -70,9 +89,9 @@ data class AdExtJson(
     @SerialName("sourceFrame") val sourceFrame: String,
     @SerialName("subOsName") val subOsName: String,
     @SerialName("subOsVersion") val subOsVersion: String,
-    @SerialName("bootMark") val bootMark: String,
-    @SerialName("updateMark") val updateMark: String,
-    @SerialName("vipRight") val vipRight: Boolean,
+    @SerialName("bootMark") val bootMark: String?,
+    @SerialName("updateMark") val updateMark: String?,
+    @SerialName("vipRight") val vipRight: Boolean?,
     @SerialName("isNativeSampling") val isNativeSampling: Boolean,
     @SerialName("ext") val ext: Ext
 ) {
@@ -86,6 +105,11 @@ data class AdExtJson(
 
     data class Ext(
         @SerialName("bannerRefreshTypes") val bannerRefreshTypes: String,
+        @SerialName("adDeviceId") val adDeviceId: String? = null,
+        @SerialName("extDevJson") val extDevJson: String,
+        @SerialName("oaid") val oaid: String? = null,
+        @SerialName("verCodeOfHms") val verCodeOfHms: Long? = null,
+        @SerialName("verCodeOfAG") val verCodeOfAG: Long? = null,
         @SerialName("teenMode") val teenMode: Boolean,
         @SerialName("homePageType") val homePageType: Int,
         @SerialName("sourceFrame") val sourceFrame: String,
@@ -98,10 +122,10 @@ data class AdExtJson(
         @SerialName("subOsVersion") val subOsVersion: String,
         @SerialName("memory") val memory: String,
         @SerialName("disk") val disk: String,
-        @SerialName("ipv4") val ipv4: String,
-        @SerialName("ipv6") val ipv6: String,
-        @SerialName("bootMark") val bootMark: String,
-        @SerialName("updateMark") val updateMark: String
+        @SerialName("ipv4") val ipv4: String?,
+        @SerialName("ipv6") val ipv6: String?,
+        @SerialName("bootMark") val bootMark: String?,
+        @SerialName("updateMark") val updateMark: String?
     )
 }
 
@@ -180,6 +204,7 @@ inline fun buildGetHomePageResourceShow(
         ruleJson = dsl.ruleJson,
         algDemoteBlockCodeOrderList = dsl.algDemoteBlockCodeOrderList,
         header = dsl.header,
+        blockCodeOrderList = dsl.blockCodeOrderList,
         eR = dsl.eR
     )
 }
@@ -197,12 +222,13 @@ class GetHomePageResourceShowDsl(
     var callbackParameters: String = DefaultBuilder.CALLBACK_PARAMETERS
     var extJson: String = DefaultBuilder.EXT_JSON
     var pageStyleType: String = DefaultBuilder.PAGE_STYLE_TYPE
-    var adExtJson: String = Json.encodeToString(buildAdExtJson { })
+    var adExtJson: String = Json { explicitNulls = false }.encodeToString(buildAdExtJson { })
     var reqTimeStamp: String = System.currentTimeMillis().toString()
     var clientTime: String =
         LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))
     var ruleJson: String = DefaultBuilder.RULE_JSON
-    var algDemoteBlockCodeOrderList: String = DefaultBuilder.ALG_DEMOTE_BLOCK_CODE_ORDER_LIST
+    var blockCodeOrderList: String? = null
+    var algDemoteBlockCodeOrderList: String? = DefaultBuilder.ALG_DEMOTE_BLOCK_CODE_ORDER_LIST
     var header: String = DefaultBuilder.HEADER
     var eR: Boolean = DefaultBuilder.ER
 }
@@ -224,6 +250,12 @@ inline fun buildAdExtJson(block: AdExtJsonDsl.() -> Unit = {}): AdExtJson {
         ipv4 = dsl.ipv4,
         ipv6 = dsl.ipv6,
         androidId = dsl.androidId,
+        imei = dsl.imei,
+        adDeviceId = dsl.adDeviceId,
+        extDevJson = dsl.extDevJson,
+        oaid = dsl.oaid,
+        verCodeOfHms = dsl.verCodeOfHms,
+        verCodeOfAG = dsl.verCodeOfAG,
         manufacturer = dsl.manufacturer,
         lbs = dsl.lbs,
         opensdkVer = dsl.opensdkVer,
@@ -244,45 +276,79 @@ inline fun buildAdExtJson(block: AdExtJsonDsl.() -> Unit = {}): AdExtJson {
         isNativeSampling = dsl.isNativeSampling,
         ext = AdExtJson.Ext(
             bannerRefreshTypes = dsl.extBannerRefreshTypes,
-            teenMode = dsl.extTeenMode,
-            homePageType = dsl.extHomePageType,
-            sourceFrame = dsl.extSourceFrame,
-            opensdkVer = dsl.extOpensdkVer,
-            wxApiVer = dsl.extWxApiVer,
-            wxInstalled = dsl.extWxInstalled,
-            supportWechatCanvas = dsl.extSupportWechatCanvas,
-            supportQuickApp = dsl.extSupportQuickApp,
-            subOsName = dsl.extSubOsName,
-            subOsVersion = dsl.extSubOsVersion,
-            memory = dsl.extMemory,
-            disk = dsl.extDisk,
-            ipv4 = dsl.extIpv4,
-            ipv6 = dsl.extIpv6,
-            bootMark = dsl.extBootMark,
-            updateMark = dsl.extUpdateMark
+            adDeviceId = dsl.adDeviceId,
+            extDevJson = dsl.extDevJson,
+            oaid = dsl.oaid,
+            verCodeOfHms = dsl.verCodeOfHms,
+            verCodeOfAG = dsl.verCodeOfAG,
+            teenMode = dsl.teenMode,
+            homePageType = dsl.homePageType,
+            sourceFrame = dsl.sourceFrame,
+            opensdkVer = dsl.opensdkVer,
+            wxApiVer = dsl.wxApiVer,
+            wxInstalled = dsl.wxInstalled,
+            supportWechatCanvas = dsl.supportWechatCanvas,
+            supportQuickApp = dsl.supportQuickApp,
+            subOsName = dsl.subOsName,
+            subOsVersion = dsl.subOsVersion,
+            memory = dsl.memory,
+            disk = dsl.disk,
+            ipv4 = dsl.ipv4,
+            ipv6 = dsl.ipv6,
+            bootMark = dsl.bootMark,
+            updateMark = dsl.updateMark
         )
     )
 }
 
 class AdExtJsonDsl {
-    var terminal: String = "Mi+A3"
-    var network: Int = 1
-    var op: Int = 0
-    var devType: Int = 1
+    private val context = AppContext.instance
+    private val metrics = context.resources.displayMetrics
+    var terminal: String = URLEncoder.encode(Build.MODEL, "UTF-8")
+    var network: Int = runCatching {
+        val manager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        val capabilities = manager.getNetworkCapabilities(manager.activeNetwork)
+        when {
+            capabilities == null -> 0
+            capabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) -> 1
+            else -> 2
+        }
+    }.getOrDefault(0)
+    var op: Int = runCatching {
+        when ((context.getSystemService(Context.TELEPHONY_SERVICE) as TelephonyManager).simOperator) {
+            "46001", "46006", "46009" -> 3
+            "46003", "46005", "46011" -> 1
+            "46000", "46002", "46007", "46008" -> 2
+            else -> 0
+        }
+    }.getOrDefault(0)
+    var devType: Int = if (context.resources.configuration.smallestScreenWidthDp >= 600) 2 else 1
     var pid: String = "4002"
-    var resolutionWidth: Int = 720
-    var resolutionHeight: Int = 1475
-    var adReqId: String = "5128948380_1766489254611_6600"
-    var memory: String = "5885825024"
-    var disk: String = "52297560064"
-    var mobilename: String = "Mi A3"
-    var ipv4: String = "127.0.0.2"
-    var ipv6: String = ""
-    var androidId: String = AppContext.instance.dataStore[AndroidIdKey]?:getAndroidId()
-    var manufacturer: String = "Xiaomi"
-    var lbs: String = """{"latitude":"4.9E-324","longitude":"4.9E-324"}"""
-    var opensdkVer: Int = 638065664
-    var wxApiVer: String = "0"
+    var resolutionWidth: Int = metrics.widthPixels
+    var resolutionHeight: Int = metrics.heightPixels
+    var adReqId: String = "${context.dataStore[UserIdKey] ?: "0"}_${System.currentTimeMillis()}_${Random.nextInt(9999)}"
+    var memory: String = runCatching {
+        val info = ActivityManager.MemoryInfo()
+        (context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager).getMemoryInfo(info)
+        info.totalMem.toString()
+    }.getOrDefault("")
+    var disk: String = runCatching { StatFs(Environment.getDataDirectory().path).totalBytes.toString() }.getOrDefault("")
+    var mobilename: String = Build.MODEL
+    var ipv4: String? = null
+    var ipv6: String? = null
+    var androidId: String = getDeviceId(context)
+    var imei: String = "null"
+    var adDeviceId: String? = null
+    var oaid: String? = null
+    var verCodeOfHms: Long? = null
+    var verCodeOfAG: Long? = null
+    val extDevJson: String get() = kotlinx.serialization.json.buildJsonObject {
+        adDeviceId?.let { put("ad_device_id", kotlinx.serialization.json.JsonPrimitive(it)) }
+    }.toString()
+    var manufacturer: String = Build.MANUFACTURER
+    var lbs: String = "{}"
+    var opensdkVer: Int = 638067200
+    var wxApiVer: String = ""
     var wxInstalled: Boolean = false
     var supportWechatCanvas: Boolean = true
     var supportQuickApp: Boolean = true
@@ -290,30 +356,15 @@ class AdExtJsonDsl {
     var useragent: String = AndroidUserAgent
     var teenMode: Boolean = false
     var homePageType: Int = 1
-    var sourceFrame: String = "note"
+    var sourceFrame: String = "rcmd"
     var subOsName: String = ""
     var subOsVersion: String = ""
-    var bootMark: String = "d99bbae5-25f8-4e1c-bfbd-f6e44d057d07"
-    var updateMark: String = "183182981.779999997"
-    var vipRight: Boolean = true
+    var bootMark: String? = runCatching { File("/proc/sys/kernel/random/boot_id").readText().trim().ifEmpty { null } }.getOrNull()
+    var updateMark: String? = runCatching {
+        val stat = Os.stat("/data/data")
+        "${stat.st_atime}.${stat.st_atim.tv_nsec}"
+    }.getOrNull()
+    var vipRight: Boolean? = null
     var isNativeSampling: Boolean = false
-
-    /* ext 映射 */
     var extBannerRefreshTypes: String = "[0]"
-    var extTeenMode: Boolean = teenMode
-    var extHomePageType: Int = homePageType
-    var extSourceFrame: String = sourceFrame
-    var extOpensdkVer: Int = opensdkVer
-    var extWxApiVer: String = wxApiVer
-    var extWxInstalled: Boolean = wxInstalled
-    var extSupportWechatCanvas: Boolean = supportWechatCanvas
-    var extSupportQuickApp: Boolean = supportQuickApp
-    var extSubOsName: String = subOsName
-    var extSubOsVersion: String = subOsVersion
-    var extMemory: String = memory
-    var extDisk: String = disk
-    var extIpv4: String = ipv4
-    var extIpv6: String = ipv6
-    var extBootMark: String = bootMark
-    var extUpdateMark: String = updateMark
 }

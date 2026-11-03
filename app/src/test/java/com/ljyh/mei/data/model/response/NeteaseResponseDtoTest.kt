@@ -189,8 +189,8 @@ class NeteaseResponseDtoTest {
 
         assertEquals(2, response.data.blocks.size)
         assertEquals("PAGE_RECOMMEND_RADAR", response.data.blocks.first().positionCode)
-        assertEquals(true, response.data.blocks.first().dslData.containsKey("radar"))
-        val resource = response.data.blocks.first().dslData["radar"]!!
+        assertEquals(true, requireNotNull(response.data.blocks.first().dslData).containsKey("radar"))
+        val resource = requireNotNull(response.data.blocks.first().dslData)["radar"]!!
             .jsonObject["resources"]!!.jsonArray.single()
         val card = json.decodeFromJsonElement<
             HomePageResourceShow.Data.Block.DslData.BlockResource.Resource

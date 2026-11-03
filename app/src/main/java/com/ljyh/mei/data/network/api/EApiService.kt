@@ -9,12 +9,16 @@ import com.ljyh.mei.data.model.api.GetUserPhotoAlbum
 import com.ljyh.mei.data.model.api.SubscribePlaylist
 import com.ljyh.mei.data.model.weapi.GetHomePageResourceShow
 import com.ljyh.mei.data.network.NeteaseHttp
+import kotlinx.serialization.Serializable
 
 
 class EApiService(private val http: NeteaseHttp) {
     private val base = "https://interface.music.163.com"
     suspend fun getHomePageResourceShow(body: GetHomePageResourceShow): HomePageResourceShow =
         http.post(base, "/eapi/link/page/rcmd/resource/show", body)
+
+    suspend fun getAdDeviceId(body: Map<String, String>): AdDeviceIdResponse =
+        http.post(base, "/eapi/ad/device/deviceid", body)
 
     suspend fun search(body: GetUserPhotoAlbum): AlbumPhoto =
         http.post(base, "/eapi/search/pc/complex/page/v3", body)
@@ -32,3 +36,9 @@ class EApiService(private val http: NeteaseHttp) {
     ): ListenDataReportResponse =
         http.post(base, "/eapi/content/activity/listen/data/report", body)
 }
+
+@Serializable
+data class AdDeviceIdResponse(val code: Int, val data: AdDeviceIdData? = null)
+
+@Serializable
+data class AdDeviceIdData(val adDeviceId: String? = null)

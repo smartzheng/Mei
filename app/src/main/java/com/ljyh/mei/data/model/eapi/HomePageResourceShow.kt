@@ -12,11 +12,25 @@ data class HomePageResourceShow(
     val data: Data = Data(),
 ) {
     @Serializable
-    data class Data(val blocks: List<Block> = emptyList()) {
+    data class Data(
+        val blocks: List<Block> = emptyList(),
+        val cursor: Int = 0,
+        val hasMore: Boolean = false,
+        val blockCodeOrderList: String? = null,
+        val algDemoteBlockCodeOrderList: String? = null,
+        val callbackParameters: String? = null,
+        val loadedPositionCodes: List<String> = emptyList(),
+    ) {
+        fun append(page: Data): Data = page.copy(
+            blocks = (blocks + page.blocks).distinctBy { it.positionCode },
+            loadedPositionCodes = (loadedPositionCodes + blocks.map { it.positionCode } + page.blocks.map { it.positionCode }).distinct(),
+            hasMore = page.hasMore && page.cursor > cursor,
+        )
         @Serializable
         data class Block(
             val positionCode: String = "",
-            val dslData: JsonObject = JsonObject(emptyMap()),
+            val dslData: JsonObject? = null,
+            val nativeData: JsonObject? = null,
         ) {
             /** Card payloads are decoded separately because each position code has its own shape. */
             object DslData {
