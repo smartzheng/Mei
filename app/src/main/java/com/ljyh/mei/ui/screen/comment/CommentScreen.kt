@@ -5,6 +5,8 @@ import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.calculateEndPadding
+import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -26,6 +28,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.paging.LoadState
@@ -65,6 +68,7 @@ fun CommentScreen(
     }
 
     val insets = LocalPlayerAwareWindowInsets.current
+    val layoutDirection = LocalLayoutDirection.current
     val topBarClearance = meiTopBarContentClearance()
     val showCollapseFab = expandedCommentId != null && expandedFloorCount > 10 && floorComments is com.ljyh.mei.data.network.Resource.Success
 
@@ -136,12 +140,15 @@ fun CommentScreen(
                     modifier = Modifier
                         .fillMaxSize()
                         .hazeSource(pageHaze)
-                        .background(MaterialTheme.colorScheme.surface)
-                        .padding(paddingValues),
+                        .background(MaterialTheme.colorScheme.surface),
                     contentPadding = PaddingValues(
-                        // The progressive backdrop extends below the measured toolbar.
-                        top = topBarClearance,
-                        bottom = insets.asPaddingValues().calculateBottomPadding()
+                        // Keep the viewport behind the toolbar for sampling while the first
+                        // comment initially clears both the toolbar and its progressive fade.
+                        start = paddingValues.calculateStartPadding(layoutDirection),
+                        end = paddingValues.calculateEndPadding(layoutDirection),
+                        top = paddingValues.calculateTopPadding() + topBarClearance,
+                        bottom = paddingValues.calculateBottomPadding() +
+                            insets.asPaddingValues().calculateBottomPadding(),
                     )
                 ) {
                     items(

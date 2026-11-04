@@ -2,18 +2,12 @@ package com.ljyh.mei.ui.screen.comment.component
 
 import com.ljyh.mei.ui.component.glass.MeiTopAppBar
 import androidx.compose.foundation.layout.Box
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -39,6 +33,7 @@ fun CommentTopBar(
 
     MeiTopAppBar(
         hazeState = hazeState,
+        centerAligned = true,
         title = {
             Text(
                 text = if (total > 0) "评论 ($total)" else "评论",
@@ -80,9 +75,6 @@ fun CommentTopBar(
                 }
             }
         },
-        colors = TopAppBarDefaults.topAppBarColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        ),
         modifier = modifier
     )
 }
