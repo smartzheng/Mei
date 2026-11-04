@@ -280,7 +280,7 @@ private fun HomeBlockItem(
     var preparingIntelligence by remember { mutableStateOf(false) }
 
     // 解析逻辑缓存，只要 block 不变，就不会重新解析 JSON
-    if (block.positionCode in setOf("PAGE_RECOMMEND_BANNER_1", "PAGE_RECOMMEND_SHORTCUT", "PAGE_RECOMMEND_ARTIST_TREND", "PAGE_RECOMMEND_PODCAST_RADIO_PROGRAM")) {
+    if (block.nativeData?.get("banners") is kotlinx.serialization.json.JsonArray || block.positionCode in setOf("PAGE_RECOMMEND_BANNER_1", "PAGE_RECOMMEND_SHORTCUT", "PAGE_RECOMMEND_ARTIST_TREND", "PAGE_RECOMMEND_PODCAST_RADIO_PROGRAM")) {
         HomeAdditionalBlock(block, navController, playlistCardSize)
         return
     }
@@ -413,12 +413,11 @@ private fun HomeBlockItem(
             // 将这些相似的逻辑合并处理，减少代码重复
             val title = if (block.positionCode == "PAGE_RECOMMEND_RADAR")
                 (blockData["title"]?.jsonPrimitive?.content ?: "雷达歌单")
-            else blockData["title"]?.jsonPrimitive?.content.orEmpty()
+            else (blockData["title"] as? kotlinx.serialization.json.JsonPrimitive)?.content
+                ?: (blockData["header"] as? JsonObject)?.get("title")?.jsonPrimitive?.content.orEmpty()
 
             // 处理数据源字段差异
-            val resourceArray = if (block.positionCode == "PAGE_RECOMMEND_RADAR")
-                (blockData["resources"] ?: blockData["blockResource"])?.jsonArray.orEmpty()
-            else blockData["resources"]?.jsonArray.orEmpty()
+            val resourceArray = ((blockData["resources"] ?: blockData["items"]) as? kotlinx.serialization.json.JsonArray).orEmpty()
 
             val resources = remember(resourceArray) {
                 resourceArray.mapNotNull {
@@ -495,6 +494,7 @@ private fun HomeBlockItem(
 
             }
         }
+        else -> HomeAdditionalBlock(block, navController, playlistCardSize)
     }
 }
 
@@ -668,11 +668,5 @@ internal fun HomeStatus(title: String, onRetry: () -> Unit) {
 }
 
 // 辅助函数保持不变
-fun selectSpecialField(jsonObject: JsonObject): JsonObject? {
-    (jsonObject["blockResource"] as? JsonObject)?.let { return it }
-    val candidate = jsonObject.entries
-        .filter { it.value is JsonObject }
-        .maxByOrNull { it.key.length }
-        ?.value as? JsonObject ?: return null
-    return (candidate["blockResource"] as? JsonObject) ?: candidate
-}
+fun selectSpecialField(jsonObject: JsonObject): JsonObject? =
+    com.ljyh.mei.data.model.eapi.homeBlockContent(jsonObject)

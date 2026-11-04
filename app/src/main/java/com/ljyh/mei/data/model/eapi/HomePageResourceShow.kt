@@ -25,6 +25,7 @@ data class HomePageResourceShow(
             blocks = (blocks + page.blocks).distinctBy { it.positionCode },
             loadedPositionCodes = (loadedPositionCodes + blocks.map { it.positionCode } + page.blocks.map { it.positionCode }).distinct(),
             hasMore = page.hasMore && page.cursor > cursor,
+            algDemoteBlockCodeOrderList = page.algDemoteBlockCodeOrderList ?: algDemoteBlockCodeOrderList,
         )
         @Serializable
         data class Block(
