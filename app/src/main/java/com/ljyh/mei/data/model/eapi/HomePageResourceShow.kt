@@ -43,6 +43,7 @@ data class HomePageResourceShow(
                         val coverImg: String = "",
                         val title: String = "",
                         val singleLineTitle: String = "",
+                        val coverTextImg: String? = null,
                         val subTitle: String? = null,
                         val iconDesc: IconDesc? = null,
                         val extInfo: ExtInfo = ExtInfo(),

@@ -3,6 +3,7 @@ package com.ljyh.mei.data.repository
 import com.ljyh.mei.AppContext
 import com.ljyh.mei.constants.UserIdKey
 import com.ljyh.mei.data.model.eapi.HomePageResourceShow
+import com.ljyh.mei.data.model.eapi.HomeFeedPolicy
 import com.ljyh.mei.data.model.weapi.buildGetHomePageResourceShow
 import com.ljyh.mei.data.model.weapi.buildAdExtJson
 import com.ljyh.mei.data.network.api.ApiService
@@ -28,7 +29,7 @@ class HomeRepository(private val eApiService: EApiService, private val apiServic
         safeApiCall {
             val user = context.dataStore[UserIdKey].orEmpty()
             // New format includes pagination state; old block-only cache cannot resume a feed.
-            val cache = File(context.filesDir, "home_feed_v3_${user.hashCode()}.json")
+            val cache = File(context.filesDir, "home_feed_v5_${user.hashCode()}.json")
             val saved = if (cache.exists()) runCatching {
                 json.decodeFromString<HomePageResourceShow.Data>(cache.readText())
             }.getOrNull() else null
@@ -44,8 +45,9 @@ class HomeRepository(private val eApiService: EApiService, private val apiServic
                     json.encodeToString((it.loadedPositionCodes + it.blocks.map { block -> block.positionCode }).distinct())
                 }.orEmpty()
                 blockCodeOrderList = previous?.blockCodeOrderList
-                // A captured order is not a universal list of modules. Only return an order issued by this server/session.
-                algDemoteBlockCodeOrderList = if (previous == null) saved?.algDemoteBlockCodeOrderList else null
+                algDemoteBlockCodeOrderList = if (previous == null) {
+                    saved?.algDemoteBlockCodeOrderList ?: json.encodeToString(HomeFeedPolicy.fallbackOrder)
+                } else null
                 callbackParameters = previous?.callbackParameters.orEmpty()
                 clientCacheBlockCode = "[]"
                 val metrics = context.resources.displayMetrics

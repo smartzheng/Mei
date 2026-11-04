@@ -140,39 +140,14 @@ private object DefaultBuilder {
     const val WIDTH_DP = "1080"
     const val HEIGHT_DP = "1920"
     const val LOADED_POSITION_CODES = ""
-    var CLIENT_CACHE_BLOCK_CODE: String = Json.encodeToString(
-        listOf(
-            "PAGE_RECOMMEND_RADAR",
-            "PAGE_RECOMMEND_SPECIAL_CLOUD_VILLAGE_PLAYLIST",
-            "PAGE_RECOMMEND_RED_SIMILAR_SONG",
-            "PAGE_RECOMMEND_DAILY_RECOMMEND"
-        )
-    )
+    const val CLIENT_CACHE_BLOCK_CODE = "[]"
     const val CALLBACK_PARAMETERS = ""
     const val EXT_JSON =
         """{"fmName":{"fmTitle":"漫游","fmLongTitle":"私人漫游"},"currentExploreHomeType":"main","homeFrameworkType":"fastPlay","latitude":"4.9E-324","homeReqSource":"home","adSceneExt":"","clientLibraAbTest":{"similarFmNameTest0422":"c","fmNameTest0422":"c"},"network":"wifi","carrier":"","forceFreshForNewUser":false,"bluetooth":false,"requestLongVideoBanner":true,"currentNewUserExploreHomeType":"main","longitude":"4.9E-324","refreshAction":"init","firstRequestPerLaunch":true,"clientMobileSize":"{\"width\":720,\"length\":1475}","noteHomeType":"note"}"""
     const val PAGE_STYLE_TYPE = "cutBlock"
     const val RULE_JSON = "{}"
     val ALG_DEMOTE_BLOCK_CODE_ORDER_LIST = Json.encodeToString(
-        listOf(
-            "PAGE_RECOMMEND_DAILY_RECOMMEND",
-            "PAGE_RECOMMEND_VIP_SMALL_CARD",
-            "PAGE_RECOMMEND_VIP_MODULE",
-            "PAGE_RECOMMEND_BANNER_6",
-            "PAGE_RECOMMEND_RADAR",
-            "PAGE_RECOMMEND_BANNER_1",
-            "PAGE_RECOMMEND_SPECIAL_CLOUD_VILLAGE_PLAYLIST",
-            "PAGE_RECOMMEND_SHORTCUT",
-            "PAGE_RECOMMEND_RED_SIMILAR_SONG",
-            "PAGE_RECOMMEND_PRIVATE_RCMD_SONG",
-            "PAGE_RECOMMEND_MIXED_ARTIST_PLAYLIST",
-            "PAGE_RECOMMEND_SURVEY",
-            "PAGE_RECOMMEND_PODCAST_MUSIC_RADIO",
-            "PAGE_RECOMMEND_NEW_SONG_AND_ALBUM",
-            "PAGE_RECOMMEND_RANK",
-            "PAGE_RECOMMEND_MUSIC_FM_LIST",
-            "PAGE_RECOMMEND_PODCAST_RADIO_PROGRAM"
-        )
+        com.ljyh.mei.data.model.eapi.HomeFeedPolicy.fallbackOrder
     )
     const val HEADER = "{}"
     const val ER = true

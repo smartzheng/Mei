@@ -82,6 +82,7 @@ fun ArtworkCard(
                 .skeleton(isLoading),
             style = titleStyle,
             fontWeight = FontWeight.Medium,
+            maxLines = maxTitleLine,
             color = MaterialTheme.colorScheme.onSurface,
         )
         if (reserveSubtitleSpace || !subtitle.isNullOrBlank()) StableArtworkText(
@@ -105,14 +106,15 @@ internal fun StableArtworkText(
     modifier: Modifier = Modifier,
     fontWeight: FontWeight? = null,
     textAlign: TextAlign = TextAlign.Start,
+    maxLines: Int = 1,
 ) {
     val fontSize = style.fontSize.takeIf { it.isSp }?.value ?: 14f
     val lineHeight = style.lineHeight.takeIf { it.isSp }?.value ?: 0f
     val height = with(LocalDensity.current) { maxOf(lineHeight, fontSize * 1.4f).sp.toDp() }
-    Box(modifier.height(height), contentAlignment = Alignment.CenterStart) {
+    Box(modifier.height(height * maxLines.coerceAtLeast(1)), contentAlignment = Alignment.TopStart) {
         Text(
             text = text, style = style, color = color, fontWeight = fontWeight, textAlign = textAlign,
-            maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.fillMaxWidth(),
+            maxLines = maxLines.coerceAtLeast(1), overflow = TextOverflow.Ellipsis, modifier = Modifier.fillMaxWidth(),
         )
     }
 }

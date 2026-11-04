@@ -8,10 +8,13 @@ import androidx.compose.material3.TopAppBarState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.text.input.TextFieldValue
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelStore
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.ComposeNavigator
 import androidx.navigation.createGraph
+import com.ljyh.mei.ui.component.navigation.selectMainDestination
 import com.ljyh.mei.ui.screen.Index
 import com.ljyh.mei.ui.screen.Screen
 import com.ljyh.mei.ui.screen.main.library.LibraryCollection
@@ -144,4 +147,32 @@ class MeiAppNavigationTest {
             assertFalse(state.searchActive)
         }
     }
+    class HomeStateMarker : ViewModel() {
+        var loadedPages = 3
+    }
+
+    @Test
+    fun homeStateAndOwnerSurviveTabSwitchAndDetailReturn() {
+        for (pages in listOf(SharedMeiPageContent, TabletPageContent)) {
+            val nav = controller(pages)
+            val home = nav.currentBackStackEntry!!
+            val factory = ViewModelProvider.NewInstanceFactory()
+            val model = ViewModelProvider(home, factory)[HomeStateMarker::class.java]
+            home.savedStateHandle["home_scroll_marker"] = 12
+
+            repeat(2) {
+                nav.selectMainDestination(Index.FindMusic)
+                nav.selectMainDestination(Index.Home)
+                val returned = nav.currentBackStackEntry!!
+                assertSame(model, ViewModelProvider(returned, factory)[HomeStateMarker::class.java])
+                assertEquals(3, model.loadedPages)
+                assertEquals(12, returned.savedStateHandle.get<Int>("home_scroll_marker"))
+                nav.navigate("${Screen.PlayList.route}/42")
+                assertTrue(nav.popBackStack())
+                assertSame(model, ViewModelProvider(nav.currentBackStackEntry!!, factory)[HomeStateMarker::class.java])
+                assertEquals(12, nav.currentBackStackEntry!!.savedStateHandle.get<Int>("home_scroll_marker"))
+            }
+        }
+    }
+
 }

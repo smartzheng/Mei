@@ -107,3 +107,10 @@ internal fun PlaylistDetail.toDomain(): MiniPlaylistDetail {
         creatorUserType = playlist.creator.userType,
     )
 }
+
+/** Header-only lookup for home cards; does not depend on track arrays in the response. */
+@Serializable
+data class PlaylistNameResponse(val code: Int, val playlist: PlaylistName? = null)
+
+@Serializable
+data class PlaylistName(val id: Long, val name: String)

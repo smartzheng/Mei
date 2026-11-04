@@ -54,6 +54,8 @@ class ApiService(private val http: NeteaseHttp, private val xeApi: XeApiClient) 
         http.post(base, "/api/songplay/dynamic-cover", body)
     suspend fun getPlaylistDetail(body: GetPlaylistDetail): PlaylistDetail =
         http.post(base, "/api/v6/playlist/detail", body)
+    suspend fun getPlaylistName(id: String): com.ljyh.mei.data.model.response.PlaylistNameResponse =
+        http.post(base, "/api/v6/playlist/detail", GetPlaylistDetail(id = id, n = "0", s = "0"))
     suspend fun getSongDetail(body: GetSongDetails): Tracks =
         http.post(base, "/api/v3/song/detail", body)
     suspend fun getAccountDetail(): UserAccount =

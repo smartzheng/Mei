@@ -48,6 +48,15 @@ class PlaylistRepository(
         }
     }
 
+    suspend fun getPlaylistName(id: String): Resource<String> = withContext(Dispatchers.IO) {
+        safeApiCall {
+            val response = apiService.getPlaylistName(id)
+            val playlist = response.playlist
+            check(response.code == 200 && playlist != null && playlist.id.toString() == id && playlist.name.isNotBlank())
+            requireNotNull(playlist).name
+        }
+    }
+
     suspend fun getPlaylistDetail(id: String): Resource<MiniPlaylistDetail> {
         return withContext(Dispatchers.IO) {
             safeApiCall {

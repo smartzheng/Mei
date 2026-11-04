@@ -86,7 +86,9 @@ import com.ljyh.mei.ui.local.LocalNavController
 import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
 import com.ljyh.mei.ui.local.LocalPlayerConnection
 import com.ljyh.mei.ui.screen.Screen
-import com.ljyh.mei.utils.preferences.rememberPreference
+import com.ljyh.mei.utils.preferences.dataStore
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.distinctUntilChanged
 import java.util.UUID
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
@@ -128,10 +130,14 @@ fun HomeScreen(
     val listState = rememberLazyListState()
 
     val homePageResourceShowPage1 by viewModel.homePageResourceShow.collectAsState()
-    val userId by rememberPreference(UserIdKey, "")
+    val context = LocalContext.current
+    // A returning composition has not read preferences yet. Null is not a logout.
+    val userId by remember(context) {
+        context.dataStore.data.map { it[UserIdKey].orEmpty() }.distinctUntilChanged()
+    }.collectAsState(initial = null)
     val sortedBlocks = remember(homePageResourceShowPage1) {
         val result = homePageResourceShowPage1
-        if (result is Resource.Success) result.data
+        if (result is Resource.Success) com.ljyh.mei.data.model.eapi.HomeFeedPolicy.visibleBlocks(result.data)
         else emptyList()
     }
     val isRefreshing by viewModel.refreshing.collectAsState()
@@ -143,8 +149,8 @@ fun HomeScreen(
         val layout = listState.layoutInfo
         layout.totalItemsCount > 0 && (layout.visibleItemsInfo.lastOrNull()?.index ?: 0) >= layout.totalItemsCount - 3
     } }
-    LaunchedEffect(nearEnd, hasMore, loadingMore, loadMoreError, sortedBlocks.size) {
-        if (nearEnd && hasMore && !loadingMore && !loadMoreError) viewModel.loadMore()
+    LaunchedEffect(nearEnd, hasMore, loadingMore, loadMoreError, isRefreshing, refreshError, sortedBlocks.size) {
+        if (nearEnd && hasMore && !loadingMore && !loadMoreError && !isRefreshing && !refreshError) viewModel.loadMore()
     }
     val device = rememberDeviceInfo()
 
@@ -157,7 +163,7 @@ fun HomeScreen(
     }
 
     LaunchedEffect(userId) {
-        viewModel.homePageResourceShow(userId = userId)
+        userId?.let { viewModel.homePageResourceShow(userId = it) }
     }
 
     val playerAwarePadding = LocalPlayerAwareWindowInsets.current.asPaddingValues()
@@ -278,10 +284,12 @@ private fun HomeBlockItem(
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     var preparingIntelligence by remember { mutableStateOf(false) }
+    val preparingPlaylistId by viewModel.preparingPlaylistId.collectAsState()
+    val playPlaylist = rememberHomePlaylistPlayback(viewModel)
 
     // 解析逻辑缓存，只要 block 不变，就不会重新解析 JSON
     if (block.nativeData?.get("banners") is kotlinx.serialization.json.JsonArray || block.positionCode in setOf("PAGE_RECOMMEND_BANNER_1", "PAGE_RECOMMEND_SHORTCUT", "PAGE_RECOMMEND_ARTIST_TREND", "PAGE_RECOMMEND_PODCAST_RADIO_PROGRAM")) {
-        HomeAdditionalBlock(block, navController, playlistCardSize)
+        HomeAdditionalBlock(block, navController, playlistCardSize, viewModel)
         return
     }
     val blockData = remember(block) {
@@ -433,20 +441,25 @@ private fun HomeBlockItem(
             }
 
             BlockWithTitle(title = title, resources = resources, itemSpacing = homeCardSpacing()) { resource ->
+                val memoryPlaylist = block.positionCode == "PAGE_RECOMMEND_MONTH_YEAR_PLAYLIST"
+                var playlistName by remember(resource.resourceId) { mutableStateOf(viewModel.cachedMemoryPlaylistName(resource.resourceId)) }
+                LaunchedEffect(resource.resourceId, memoryPlaylist) {
+                    if (memoryPlaylist) playlistName = viewModel.memoryPlaylistName(resource.resourceId)
+                }
                 PlaylistCard(
                     id = resource.resourceId,
-                    title = resource.title,
+                    title = if (memoryPlaylist) playlistName ?: resource.title else resource.title,
+                    coverLabelUrl = resource.coverTextImg.takeIf { memoryPlaylist },
                     coverImg = resource.coverImg,
-                    subTitle = resource.resourceExtInfo?.coverText,
+                    subTitle = resource.resourceExtInfo?.coverText.takeUnless { memoryPlaylist },
                     showPlay = true,
+                    preparingPlayback = preparingPlaylistId == resource.resourceId,
                     extInfo = resource.resourceInteractInfo?.playCount,
                     cardSize = playlistCardSize,
                     onClick = {
                         Screen.PlayList.navigate(navController) { addPath(resource.resourceId) }
                     },
-                    onPlayClick = {
-
-                    }
+                    onPlayClick = { playPlaylist(resource.resourceId) }
                 )
             }
         }
@@ -494,7 +507,7 @@ private fun HomeBlockItem(
 
             }
         }
-        else -> HomeAdditionalBlock(block, navController, playlistCardSize)
+        else -> HomeAdditionalBlock(block, navController, playlistCardSize, viewModel)
     }
 }
 
