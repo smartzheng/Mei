@@ -35,7 +35,7 @@ internal fun HomeAdditionalBlock(block: HomePageResourceShow.Data.Block, nav: Na
         }
     }
     val data = block.dslData
-    if (block.positionCode == "PAGE_RECOMMEND_BANNER_1") {
+    if (block.nativeData?.get("banners") is JsonArray) {
         val banners = (block.nativeData?.get("banners") as? JsonArray).orEmpty().filterIsInstance<JsonObject>()
         LazyRow(contentPadding = PaddingValues(horizontal = meiPageGutter()), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             items(banners) { banner ->
@@ -62,7 +62,8 @@ internal fun HomeAdditionalBlock(block: HomePageResourceShow.Data.Block, nav: Na
         ?: when (block.positionCode) {
             "PAGE_RECOMMEND_SHORTCUT" -> "最近访问"
             "PAGE_RECOMMEND_ARTIST_TREND" -> "歌手动态"
-            else -> "播客推荐"
+            "PAGE_RECOMMEND_PODCAST_RADIO_PROGRAM" -> "播客推荐"
+            else -> (content["header"] as? JsonObject)?.text("title").orEmpty()
         }
     val cards = remember(block) {
         if (block.positionCode == "PAGE_RECOMMEND_PODCAST_RADIO_PROGRAM") {
@@ -74,7 +75,7 @@ internal fun HomeAdditionalBlock(block: HomePageResourceShow.Data.Block, nav: Na
         }
     }
     if (cards.isEmpty()) return
-    Title(title)
+    if (title.isNotBlank()) Title(title)
     LazyRow(contentPadding = PaddingValues(horizontal = meiPageGutter()), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
         items(cards) { card ->
             val type = card.text("resourceType")
@@ -85,6 +86,7 @@ internal fun HomeAdditionalBlock(block: HomePageResourceShow.Data.Block, nav: Na
                     when (type) {
                         "album", "digital_album" -> Screen.Album.navigate(nav) { addPath(id) }
                         "list", "playList", "playlist" -> Screen.PlayList.navigate(nav) { addPath(id) }
+                        "artist" -> Screen.Artist.navigate(nav) { addPath(id) }
                         "song" -> open("https://music.163.com/#/song?id=$id")
                         "djprogram" -> open("https://music.163.com/#/program?id=$id")
                     }

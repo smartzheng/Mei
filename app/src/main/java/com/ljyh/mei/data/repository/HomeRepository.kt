@@ -28,11 +28,13 @@ class HomeRepository(private val eApiService: EApiService, private val apiServic
         safeApiCall {
             val user = context.dataStore[UserIdKey].orEmpty()
             // New format includes pagination state; old block-only cache cannot resume a feed.
-            val cache = File(context.filesDir, "home_feed_v2_${user.hashCode()}.json")
+            val cache = File(context.filesDir, "home_feed_v3_${user.hashCode()}.json")
+            val saved = if (cache.exists()) runCatching {
+                json.decodeFromString<HomePageResourceShow.Data>(cache.readText())
+            }.getOrNull() else null
             if (previous == null && !refresh && cache.exists() &&
                 System.currentTimeMillis() - cache.lastModified() in 0 until 30 * 60 * 1000L) {
-                runCatching { json.decodeFromString<HomePageResourceShow.Data>(cache.readText()) }
-                    .getOrNull()?.let { return@safeApiCall it }
+                saved?.let { return@safeApiCall it }
             }
             val adId = adDeviceIdProvider.get()
             val request = buildGetHomePageResourceShow("true") {
@@ -42,7 +44,8 @@ class HomeRepository(private val eApiService: EApiService, private val apiServic
                     json.encodeToString((it.loadedPositionCodes + it.blocks.map { block -> block.positionCode }).distinct())
                 }.orEmpty()
                 blockCodeOrderList = previous?.blockCodeOrderList
-                if (previous != null) algDemoteBlockCodeOrderList = null
+                // A captured order is not a universal list of modules. Only return an order issued by this server/session.
+                algDemoteBlockCodeOrderList = if (previous == null) saved?.algDemoteBlockCodeOrderList else null
                 callbackParameters = previous?.callbackParameters.orEmpty()
                 clientCacheBlockCode = "[]"
                 val metrics = context.resources.displayMetrics
@@ -57,6 +60,9 @@ class HomeRepository(private val eApiService: EApiService, private val apiServic
             val response = eApiService.getHomePageResourceShow(request)
             check(response.code == 200) { "Home request failed: ${response.code}" }
             val page = response.data
+            timber.log.Timber.tag("HomeFeed").d("cursor=%d next=%d hasMore=%s modules=%s",
+                previous?.cursor ?: 0, page.cursor, page.hasMore,
+                page.blocks.joinToString { it.positionCode })
             val combined = previous?.append(page) ?: page.copy(loadedPositionCodes = page.blocks.map { it.positionCode }.distinct())
             if (context.dataStore[UserIdKey].orEmpty() == user) {
                 // Cache failure should not turn a successful network response into an error.
