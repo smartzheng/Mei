@@ -56,11 +56,14 @@ class SearchResultChromeTest {
             // Wide tabs use the page's available width rather than the input's 640dp cap.
             compose.onNodeWithText("综合").assertWidthIsAtLeast(140.dp)
             compose.onNodeWithText("歌单").assertIsDisplayed().performClick().assertIsSelected()
-            for ((window, scale) in listOf(360.dp to 1f, 360.dp to 3f)) {
-                compose.runOnIdle { width = window; fontScale = scale; selected = SearchType.All }
-                compose.onNodeWithText("歌单").performScrollTo().assertIsDisplayed().performClick().assertIsSelected()
-                compose.onNodeWithText("综合").performScrollTo().assertIsDisplayed().performClick().assertIsSelected()
+            compose.runOnIdle { width = 360.dp; selected = SearchType.All }
+            for (type in SearchType.entries.filter { it != SearchType.History }) {
+                compose.onNodeWithText(type.displayName).assertIsDisplayed().assertWidthIsAtLeast(48.dp)
+                    .performClick().assertIsSelected()
             }
+            compose.runOnIdle { width = 240.dp; fontScale = 3f; selected = SearchType.All }
+            compose.onNodeWithText("歌单").performScrollTo().assertIsDisplayed().performClick().assertIsSelected()
+            compose.onNodeWithText("综合").performScrollTo().assertIsDisplayed().performClick().assertIsSelected()
         } finally {
             activity.pause().stop().destroy()
             TabletContentTestActivity.content = {}

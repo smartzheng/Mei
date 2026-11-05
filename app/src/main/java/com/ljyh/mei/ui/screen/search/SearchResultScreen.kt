@@ -235,7 +235,7 @@ internal fun SearchTypeFilterRow(selected: SearchType, onSelect: (SearchType) ->
     val density = LocalDensity.current
     val measurer = rememberTextMeasurer()
     val labelStyle = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold)
-    val minTabWidth = maxOf(90.dp, with(density) {
+    val minTabWidth = maxOf(48.dp, with(density) {
         types.maxOf { measurer.measure(it.displayName, labelStyle, maxLines = 1).size.width }.toDp()
     } + 32.dp)
     MeiGlassSurface(
