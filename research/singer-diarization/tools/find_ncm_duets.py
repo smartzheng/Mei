@@ -1,4 +1,8 @@
-"""Find NCM TTML files with lyric lines assigned to multiple people."""
+"""Legacy scanner: only counts type=person agents.
+
+This undercounts duets because this library frequently uses type=other for the
+second singer. Use filter_ncm_duets.py for the current TTML + LYS pipeline.
+"""
 
 import argparse
 from collections import Counter
