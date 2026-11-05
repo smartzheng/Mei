@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -18,33 +17,28 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.DragHandle
 import androidx.compose.material.icons.rounded.Edit
-import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.rememberModalBottomSheetState
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.contentDescription
@@ -55,9 +49,12 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.ljyh.mei.constants.MoreActionOrderKey
 import com.ljyh.mei.ui.component.player.controls.rememberSleepTimerStatus
+import com.ljyh.mei.ui.component.sheet.MeiAdaptiveSheet
+import com.ljyh.mei.ui.component.sheet.meiSheetContentHeight
+import com.ljyh.mei.ui.component.sheet.rememberMeiAdaptiveSheetState
 import com.ljyh.mei.ui.local.LocalPlayerConnection
-import com.ljyh.mei.ui.model.PlayerActionProfile
 import com.ljyh.mei.ui.model.MoreAction
+import com.ljyh.mei.ui.model.PlayerActionProfile
 import com.ljyh.mei.utils.preferences.rememberPreference
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
@@ -89,10 +86,8 @@ fun MoreActionsSheet(
         draft.moveAction(from.index, to.index)
         haptics.performHapticFeedback(HapticFeedbackType.SegmentFrequentTick)
     }
-    val sheetState = rememberModalBottomSheetState(
-        skipPartiallyExpanded = true,
-        confirmValueChange = { target -> target != SheetValue.Hidden || !editing },
-    )
+    val sheetState = rememberMeiAdaptiveSheetState()
+    val closeSheet: () -> Unit = if (embedded) onDismissRequest else sheetState::hide
     LaunchedEffect(editing) { if (!editing) draft.clear() }
 
     fun leaveEdit() {
@@ -100,14 +95,12 @@ fun MoreActionsSheet(
         draft.clear()
     }
 
-    val sheetHeight = minOf(LocalConfiguration.current.screenHeightDp.dp * 0.52f, 440.dp)
     val sheetContent: @Composable () -> Unit = {
         BackHandler(enabled = editing) { leaveEdit() }
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(sheetHeight)
-                .navigationBarsPadding(),
+                .height(meiSheetContentHeight(.52f, 440.dp)),
         ) {
             Row(
                 modifier = Modifier
@@ -224,14 +217,7 @@ fun MoreActionsSheet(
     if (embedded) {
         sheetContent()
     } else {
-        ModalBottomSheet(
-            onDismissRequest = {
-                if (editing) leaveEdit() else onDismissRequest()
-            },
-            sheetState = sheetState,
-            dragHandle = { BottomSheetDefaults.DragHandle() },
-            containerColor = MaterialTheme.colorScheme.surfaceContainer,
-        ) {
+        MeiAdaptiveSheet(onDismissRequest = onDismissRequest, state = sheetState, dismissEnabled = !editing, onDismissBlocked = ::leaveEdit,) {
             sheetContent()
         }
     }

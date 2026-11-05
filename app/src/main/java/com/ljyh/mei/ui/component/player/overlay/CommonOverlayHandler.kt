@@ -2,7 +2,6 @@ package com.ljyh.mei.ui.component.player.overlay
 
 import android.os.Build
 import android.widget.Toast
-import androidx.activity.compose.BackHandler
 import androidx.annotation.RequiresApi
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.tween
@@ -11,22 +10,8 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.ArrowBack
-import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.SheetValue
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -34,14 +19,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.unit.dp
 import androidx.media3.common.util.UnstableApi
 import com.ljyh.mei.constants.DownloadPathKey
 import com.ljyh.mei.constants.DownloadQuality
@@ -49,26 +29,26 @@ import com.ljyh.mei.constants.DownloadQualityKey
 import com.ljyh.mei.data.model.domain.MediaMetadata
 import com.ljyh.mei.download.DownloadManager
 import com.ljyh.mei.ui.component.dialog.DownloadConfirmDialog
-import com.ljyh.mei.ui.component.player.sheet.MoreActionsSheet
 import com.ljyh.mei.ui.component.player.sheet.LyricSourceSheet
+import com.ljyh.mei.ui.component.player.sheet.MoreActionsSheet
 import com.ljyh.mei.ui.component.player.sheet.MusicQualitySheet
 import com.ljyh.mei.ui.component.player.sheet.PlayerActionSettingsSheet
 import com.ljyh.mei.ui.component.player.sheet.PlaylistBottomSheet
 import com.ljyh.mei.ui.component.player.sheet.QQMusicSelectSheet
 import com.ljyh.mei.ui.component.player.sheet.SleepTimerSheet
 import com.ljyh.mei.ui.component.player.sheet.SongInfoSheet
-import com.ljyh.mei.ui.component.sheet.AlbumArtistBottomSheet
 import com.ljyh.mei.ui.component.player.state.PlayerStateContainer
 import com.ljyh.mei.ui.component.sheet.AddToPlaylistSheet
-import com.ljyh.mei.ui.component.sheet.CreatePlaylistSheet
+import com.ljyh.mei.ui.component.sheet.AlbumArtistBottomSheet
 import com.ljyh.mei.ui.component.sheet.BottomSheetState
+import com.ljyh.mei.ui.component.sheet.CreatePlaylistSheet
+import com.ljyh.mei.ui.component.sheet.MeiAdaptiveSheet
 import com.ljyh.mei.ui.local.LocalNavController
+import com.ljyh.mei.ui.model.LyricSelectionState
 import com.ljyh.mei.ui.model.MoreAction
 import com.ljyh.mei.ui.screen.Screen
-import com.ljyh.mei.ui.model.LyricSelectionState
 import com.ljyh.mei.utils.preferences.rememberEnumPreference
 import com.ljyh.mei.utils.preferences.rememberPreference
-import kotlinx.coroutines.launch
 
 /**
  * 公共弹窗处理器 UI
@@ -112,53 +92,20 @@ fun CommonOverlayHandler(
     }
 
     if (isSheet) {
-        val dismissBlocked = rememberUpdatedState(overlay == OverlayState.MoreAction && moreEditing.value)
-        val modalState = rememberModalBottomSheetState(
-            skipPartiallyExpanded = true,
-            confirmValueChange = { next -> next != SheetValue.Hidden || !dismissBlocked.value },
-        )
-        val scope = rememberCoroutineScope()
-        LaunchedEffect(requestedDownload) {
-            if (requestedDownload != null) {
-                modalState.hide()
-                overlayHandler.dismiss()
-            }
-        }
-        val closeSheet: () -> Unit = {
-            scope.launch {
-                modalState.hide()
-                overlayHandler.dismiss()
-            }
-        }
         val returning = overlayHandler.isReturning
-        val canGoBack = overlayHandler.canGoBack
-
-        ModalBottomSheet(
-            onDismissRequest = {
-                if (overlay == OverlayState.MoreAction && moreEditing.value) moreEditing.value = false
-                else closeSheet()
-            },
-            sheetState = modalState,
+        MeiAdaptiveSheet(
+            onDismissRequest = overlayHandler::dismiss,
             modifier = modifier,
-            containerColor = MaterialTheme.colorScheme.surfaceContainer,
-            dragHandle = {
-                Box(Modifier.fillMaxWidth().height(48.dp)) {
-                    BottomSheetDefaults.DragHandle(Modifier.align(Alignment.Center))
-                    if (canGoBack) {
-                        IconButton(
-                            onClick = overlayHandler::goBack,
-                            modifier = Modifier.align(Alignment.CenterStart).padding(start = 8.dp).size(48.dp),
-                        ) {
-                            Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "返回上一弹层")
-                        }
-                    }
-                }
-            },
-        ) {
-            BackHandler(enabled = canGoBack && !moreEditing.value) { overlayHandler.goBack() }
+            dismissEnabled = !(overlay == OverlayState.MoreAction && moreEditing.value),
+            onDismissBlocked = { moreEditing.value = false },
+            onNavigateBack = if (overlayHandler.canGoBack) overlayHandler::goBack else null,
+        ) { closeSheet ->
+            LaunchedEffect(requestedDownload) {
+                if (requestedDownload != null) closeSheet()
+            }
             AnimatedContent(
                 targetState = overlay,
-                modifier = Modifier.fillMaxWidth().heightIn(max = LocalConfiguration.current.screenHeightDp.dp * 0.88f),
+                modifier = Modifier.fillMaxWidth(),
                 transitionSpec = {
                     val direction = if (returning) -1 else 1
                     (fadeIn(tween(180)) + slideInHorizontally(tween(220)) { direction * it / 10 }) togetherWith

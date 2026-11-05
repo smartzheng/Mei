@@ -20,7 +20,6 @@ import androidx.compose.material.icons.rounded.ContentCopy
 import androidx.compose.material.icons.rounded.Download
 import androidx.compose.material.icons.rounded.Pause
 import androidx.compose.material.icons.rounded.PlayArrow
-import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -30,11 +29,9 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -56,11 +53,13 @@ import coil3.request.ImageRequest
 import coil3.request.crossfade
 import com.ljyh.mei.data.model.domain.MediaMetadata
 import com.ljyh.mei.data.repository.DynamicCover
-import com.ljyh.mei.utils.TimeUtils
 import com.ljyh.mei.download.saveDynamicCoverToMovies
 import com.ljyh.mei.ui.component.player.cover.DynamicCoverView
-import com.ljyh.mei.utils.system.setClipboard
+import com.ljyh.mei.ui.component.sheet.MeiAdaptiveSheet
+import com.ljyh.mei.ui.component.sheet.rememberMeiAdaptiveSheetState
+import com.ljyh.mei.utils.TimeUtils
 import com.ljyh.mei.utils.image.saveImageToGallery
+import com.ljyh.mei.utils.system.setClipboard
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 
@@ -74,7 +73,8 @@ fun SongInfoSheet(
     modifier: Modifier = Modifier,
     embedded: Boolean = false,
 ) {
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val sheetState = rememberMeiAdaptiveSheetState()
+    val closeSheet: () -> Unit = if (embedded) onDismissRequest else sheetState::hide
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val coverOptions = remember(dynamicCover) { dynamicCover?.motionOptions().orEmpty() }
@@ -274,13 +274,7 @@ fun SongInfoSheet(
     if (embedded) {
         sheetContent()
     } else {
-        ModalBottomSheet(
-            onDismissRequest = onDismissRequest,
-            sheetState = sheetState,
-            dragHandle = { BottomSheetDefaults.DragHandle() },
-            containerColor = MaterialTheme.colorScheme.surfaceContainer,
-            modifier = modifier
-        ) {
+        MeiAdaptiveSheet(onDismissRequest = onDismissRequest, state = sheetState, modifier = modifier,) {
             sheetContent()
         }
     }

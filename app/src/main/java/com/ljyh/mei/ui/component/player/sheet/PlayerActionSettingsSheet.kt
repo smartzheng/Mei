@@ -19,6 +19,8 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.ljyh.mei.ui.component.player.controls.rememberPlayerActionPreference
+import com.ljyh.mei.ui.component.sheet.MeiAdaptiveSheet
+import com.ljyh.mei.ui.component.sheet.meiSheetContentHeight
 import com.ljyh.mei.ui.model.PlayerAction
 import com.ljyh.mei.ui.model.PlayerActionProfile
 import sh.calvin.reorderable.ReorderableItem
@@ -58,7 +60,7 @@ internal fun PlayerActionSettingsContent(
     val available = profile.candidates.filterNot(actions::contains)
     LazyColumn(
         state = listState,
-        modifier = Modifier.fillMaxWidth().heightIn(max = 640.dp),
+        modifier = Modifier.fillMaxWidth().heightIn(max = meiSheetContentHeight(maxHeight = 640.dp)),
         contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 32.dp),
     ) {
         item(key = "heading") {
@@ -120,5 +122,5 @@ internal fun PlayerActionSettingsContent(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun PlayerActionSettingsContainer(onDismiss: () -> Unit, embedded: Boolean, content: @Composable () -> Unit) {
-    if (embedded) content() else ModalBottomSheet(onDismissRequest = onDismiss) { content() }
+    if (embedded) content() else MeiAdaptiveSheet(onDismissRequest = onDismiss) { content() }
 }

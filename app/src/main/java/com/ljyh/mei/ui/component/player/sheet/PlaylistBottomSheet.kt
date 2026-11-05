@@ -7,14 +7,11 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -27,10 +24,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
-import androidx.compose.material3.rememberModalBottomSheetState
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -38,6 +32,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
@@ -46,7 +41,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.semantics.CustomAccessibilityAction
@@ -63,9 +57,12 @@ import androidx.media3.common.util.UnstableApi
 import coil3.compose.AsyncImage
 import com.ljyh.mei.data.model.domain.MediaMetadata
 import com.ljyh.mei.data.model.domain.metadata
+import com.ljyh.mei.extensions.mediaItems
 import com.ljyh.mei.playback.queue.queueEntryId
 import com.ljyh.mei.playback.queue.queueSource
-import com.ljyh.mei.extensions.mediaItems
+import com.ljyh.mei.ui.component.sheet.MeiAdaptiveSheet
+import com.ljyh.mei.ui.component.sheet.meiSheetContentHeight
+import com.ljyh.mei.ui.component.sheet.rememberMeiAdaptiveSheetState
 import com.ljyh.mei.ui.local.LocalPlayerConnection
 import com.ljyh.mei.utils.TimeUtils.formatDuration
 import java.util.IdentityHashMap
@@ -234,25 +231,22 @@ fun PlaylistContent(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PlaylistBottomSheet(onDismiss: () -> Unit, embedded: Boolean = false) {
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    val sheetHeight = LocalConfiguration.current.screenHeightDp.dp * 0.78f
+    val sheetState = rememberMeiAdaptiveSheetState()
+    val closeSheet: () -> Unit = if (embedded) onDismiss else sheetState::hide
     val sheetContent: @Composable () -> Unit = {
         PlaylistContent(
-            onDismiss = onDismiss,
+            onDismiss = closeSheet,
             modifier = Modifier
                 .fillMaxWidth()
-                .height(sheetHeight)
-                .padding(bottom = WindowInsets.systemBars.asPaddingValues().calculateBottomPadding()),
+                .height(meiSheetContentHeight(.78f)),
         )
     }
     if (embedded) {
         sheetContent()
     } else {
-        ModalBottomSheet(
-            onDismissRequest = onDismiss,
-            sheetState = sheetState,
-            shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp),
-        ) { sheetContent() }
+        MeiAdaptiveSheet(onDismissRequest = onDismiss, state = sheetState) {
+            sheetContent()
+        }
     }
 }
 

@@ -15,23 +15,19 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
 import androidx.compose.material.icons.rounded.Person
-import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -53,14 +49,15 @@ fun AlbumArtistBottomSheet(
     embedded: Boolean = false,
     showAlbumDestination: Boolean = true,
 ) {
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val sheetState = rememberMeiAdaptiveSheetState()
+    val closeSheet: () -> Unit = if (embedded) onDismissRequest else sheetState::hide
     val context = LocalContext.current
 
     val sheetContent: @Composable () -> Unit = {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .heightIn(max = LocalConfiguration.current.screenHeightDp.dp * 0.7f - 48.dp)
+                .heightIn(max = meiSheetContentHeight(.7f))
                 .verticalScroll(rememberScrollState()) // 防止内容过多无法滚动
                 .padding(bottom = 32.dp) // 底部留白，避开手势导航条
         ) {
@@ -110,7 +107,7 @@ fun AlbumArtistBottomSheet(
                 colors = ListItemDefaults.colors(containerColor = Color.Transparent),
                 modifier = Modifier.clickable {
                     onAlbumClick(albumInfo.id)
-                    onDismissRequest() // 点击后自动关闭
+                    closeSheet() // 点击后自动关闭
                 }
                 )
 
@@ -155,7 +152,7 @@ fun AlbumArtistBottomSheet(
                         colors = ListItemDefaults.colors(containerColor = Color.Transparent),
                         modifier = Modifier.clickable(enabled = artist.id > 0) {
                             onArtistClick(artist.id)
-                            onDismissRequest()
+                            closeSheet()
                         }
                     )
                 }
@@ -165,13 +162,7 @@ fun AlbumArtistBottomSheet(
     if (embedded) {
         sheetContent()
     } else {
-        ModalBottomSheet(
-            onDismissRequest = onDismissRequest,
-            sheetState = sheetState,
-            dragHandle = { BottomSheetDefaults.DragHandle() },
-            containerColor = MaterialTheme.colorScheme.surfaceContainer,
-            modifier = modifier
-        ) {
+        MeiAdaptiveSheet(onDismissRequest = onDismissRequest, state = sheetState, modifier = modifier,) {
             sheetContent()
         }
     }

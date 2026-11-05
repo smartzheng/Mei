@@ -15,15 +15,12 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -37,13 +34,16 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.ljyh.mei.data.model.domain.MediaMetadata
-import com.ljyh.unblockneteasemusic.model.MusicTrack
 import com.ljyh.mei.data.network.Resource
 import com.ljyh.mei.ui.component.player.state.PlayerViewModel
+import com.ljyh.mei.ui.component.sheet.MeiAdaptiveSheet
+import com.ljyh.mei.ui.component.sheet.meiSheetContentHeight
+import com.ljyh.mei.ui.component.sheet.rememberMeiAdaptiveSheetState
 import com.ljyh.mei.utils.TimeUtils.formatDuration
 import com.ljyh.mei.utils.TimeUtils.formatSeconds
-import timber.log.Timber
+import com.ljyh.unblockneteasemusic.model.MusicTrack
 import kotlin.math.abs
+import timber.log.Timber
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -55,7 +55,8 @@ fun QQMusicSelectSheet(
     embedded: Boolean = false,
 ) {
     val searchNew by viewmodel.searchResult.collectAsState()
-    val sheetState = rememberModalBottomSheetState()
+    val sheetState = rememberMeiAdaptiveSheetState()
+    val closeSheet: () -> Unit = if (embedded) onDismiss else sheetState::hide
     val sheetContent: @Composable () -> Unit = {
         Column(modifier = Modifier.fillMaxWidth()) {
             CurrentReferenceHeader(
@@ -97,7 +98,7 @@ fun QQMusicSelectSheet(
                         LazyColumn(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .heightIn(max = 500.dp) // 限制最大高度
+                                .heightIn(max = meiSheetContentHeight(maxHeight = 500.dp)) // 限制最大高度
                                 .padding(bottom = 24.dp)
                         ) {
                             itemsIndexed(songs) { _, song ->
@@ -108,7 +109,7 @@ fun QQMusicSelectSheet(
                                     onClick = {
                                         Timber.tag("QQMusicSelect").d(song.toString())
                                         viewmodel.selectQQSong(song)
-                                        onDismiss()
+                                        closeSheet()
                                     }
                                 )
                             }
@@ -121,12 +122,7 @@ fun QQMusicSelectSheet(
     if (embedded) {
         sheetContent()
     } else {
-        ModalBottomSheet(
-            onDismissRequest = onDismiss,
-            sheetState = sheetState,
-            dragHandle = { BottomSheetDefaults.DragHandle() },
-            containerColor = MaterialTheme.colorScheme.surface,
-        ) {
+        MeiAdaptiveSheet(onDismissRequest = onDismiss, state = sheetState) {
             sheetContent()
         }
     }
