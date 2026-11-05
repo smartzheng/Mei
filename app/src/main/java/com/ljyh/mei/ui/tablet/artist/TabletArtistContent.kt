@@ -36,20 +36,18 @@ import com.ljyh.mei.ui.tablet.component.*
 internal fun TabletArtistContent(state: ArtistDetailUiState, actions: ArtistDetailActions) {
     AdaptiveTabletContent(compact = { ArtistDetailContent(state, actions) }) { metrics ->
         val side = rememberLazyListState()
-        val bar = rememberMeiArtworkTopBarState(side, state.id)
         var description by rememberSaveable(state.id) { mutableStateOf(false) }
         val artist = state.artist
         val gutter = meiPageGutter()
         TabletDetailPage(
             title = artist?.name ?: "歌手", sideWidth = metrics.sideWidthDp.dp, onBack = actions.onBack,
-            backgroundMode = meiArtworkTopBarBackground(bar.artworkPassed), toolbarModifier = bar.toolbarModifier,
             sidePane = { padding ->
                 LazyColumn(state = side, modifier = Modifier.fillMaxSize(), contentPadding = padding,
                     verticalArrangement = Arrangement.spacedBy(16.dp)) {
                     item(key = "artist_artwork") {
                         SkeletonShimmerHost(state.detailLoading, Modifier.padding(horizontal = gutter)) {
                             TabletArtwork(artist?.cover?.takeIf(String::isNotBlank) ?: artist?.avatar,
-                                Modifier.then(bar.artworkModifier), aspectRatio = 0.82f, placeholder = Icons.Rounded.Person)
+                                aspectRatio = 0.82f, placeholder = Icons.Rounded.Person)
                         }
                     }
                     item(key = "artist_identity") {

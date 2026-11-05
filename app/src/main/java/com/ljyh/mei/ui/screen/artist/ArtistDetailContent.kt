@@ -43,7 +43,7 @@ internal fun ArtistDetailContent(state: ArtistDetailUiState, actions: ArtistDeta
     Scaffold(topBar = {
         MeiHazeTopBar(source, state.artist?.name.orEmpty(), progress,
             modifier = bar.toolbarModifier, onNavigateBack = actions.onBack,
-            backgroundMode = meiArtworkTopBarBackground(bar.artworkPassed))
+            backgroundProgress = 1f)
     }) { padding ->
         LazyColumn(state = list, modifier = Modifier.fillMaxSize().hazeSource(source),
             contentPadding = PaddingValues(bottom = padding.calculateBottomPadding() +

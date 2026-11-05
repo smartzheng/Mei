@@ -33,7 +33,6 @@ internal fun TabletAlbumContent(state: AlbumDetailUiState, actions: AlbumDetailA
         val album = state.album
         val side = rememberLazyListState()
         val songs = rememberLazyListState()
-        val bar = rememberMeiArtworkTopBarState(side, album.id)
         val artists =
             remember(album.artistIds, album.artistNames, state.songs) { albumDisplayArtists(album, state.songs) }
         val indices = remember(state.songs) { state.songs.withIndex().associate { it.value.id to it.index } }
@@ -56,7 +55,6 @@ internal fun TabletAlbumContent(state: AlbumDetailUiState, actions: AlbumDetailA
         TabletDetailPage(
             title = album.name, sideWidth = metrics.sideWidthDp.dp,
             onBack = { if (state.isSearchActive) changeSearch(false) else actions.onBack() },
-            backgroundMode = meiArtworkTopBarBackground(bar.artworkPassed), toolbarModifier = bar.toolbarModifier,
             actions = {
                 MeiDetailMoreButton(
                     shareContent = MediaShareLink.album(album), searchActive = state.isSearchActive,
@@ -69,7 +67,7 @@ internal fun TabletAlbumContent(state: AlbumDetailUiState, actions: AlbumDetailA
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     item(key = "album_artwork") {
-                        Box(Modifier.padding(horizontal = gutter)) { TabletArtwork(album.picUrl, bar.artworkModifier) }
+                        Box(Modifier.padding(horizontal = gutter)) { TabletArtwork(album.picUrl) }
                     }
                     item(key = "album_identity") {
                         Column(

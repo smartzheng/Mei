@@ -17,6 +17,7 @@ import coil3.request.ImageRequest
 import coil3.request.ImageResult
 import coil3.request.SuccessResult
 import coil3.size.Dimension
+import coil3.size.Size
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -27,6 +28,7 @@ private val PlayerArtwork = Extras.Key(false)
 fun ImageRequest.Builder.originalArtwork(url: String?): ImageRequest.Builder = apply {
     data(url?.originalArtworkUrl())
     extras[OriginalArtwork] = true
+    size(Size.ORIGINAL)
 }
 
 /** Full-player requests opt out of component-based thumbnail sizing. */
@@ -34,7 +36,9 @@ fun ImageRequest.Builder.playerArtwork(url: String?, original: Boolean): ImageRe
     data(url?.playerArtworkUrl(original))
     extras[OriginalArtwork] = original
     extras[PlayerArtwork] = true
-    if (!original) size(1600)
+    // This image is already composed at mini-bar size before the player expands. Decode
+    // independently of those constraints, including when the source URL is the original.
+    if (original) size(Size.ORIGINAL) else size(1600)
 }
 
 /** Runs before Coil's cache lookup, so the normalized URL is also the disk cache key. */

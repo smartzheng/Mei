@@ -54,7 +54,6 @@ import androidx.compose.ui.Modifier
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
 import com.ljyh.mei.ui.component.glass.MeiHazeTopBar
-import com.ljyh.mei.ui.component.glass.meiArtworkTopBarBackground
 import com.ljyh.mei.ui.component.glass.rememberMeiArtworkTopBarState
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -177,11 +176,11 @@ internal fun AlbumDetailContent(state: AlbumDetailUiState, actions: AlbumDetailA
                 }
 
                 MeiHazeTopBar(
-                    backgroundMode = meiArtworkTopBarBackground(artworkBar.artworkPassed),
                     modifier = artworkBar.toolbarModifier,
                     state = pageHaze,
                     title = "",
                     progress = if (artworkBar.artworkPassed || isSearchActive) 1f else 0f,
+                    backgroundProgress = 1f,
                     onNavigateBack = { if (isSearchActive) onSearchActiveChange(false) else onBack() },
                     actions = {
                         MeiDetailMoreButton(
@@ -210,7 +209,9 @@ internal fun AlbumDetailContent(state: AlbumDetailUiState, actions: AlbumDetailA
                                 ),
                             )
                         } else {
-                            Text(album.name, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            Text(album.name, style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.SemiBold, maxLines = 1,
+                                overflow = TextOverflow.Ellipsis)
                         }
                     },
                 )
