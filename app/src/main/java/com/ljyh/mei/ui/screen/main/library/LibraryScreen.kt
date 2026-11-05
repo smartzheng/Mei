@@ -98,6 +98,7 @@ internal fun LibraryScreen(
                     }
                 },
                 onLogin = { Screen.ContentSettings.navigate(nav) },
+                onOpenProfile = { Screen.PersonalCenter.navigate(nav) },
                 onRetry = { viewModel.refresh() },
             ),
         )

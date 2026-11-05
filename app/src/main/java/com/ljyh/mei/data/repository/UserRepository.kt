@@ -96,6 +96,12 @@ class UserRepository(
         }
     }
 
+    suspend fun getListeningRank(uid: String, allTime: Boolean): Resource<List<com.ljyh.mei.data.model.response.ListeningTrack>> =
+        withContext(Dispatchers.IO) { safeApiCall { weApiService.getListeningRank(uid, allTime).tracks(allTime) } }
+
+    suspend fun getRecentListening(): Resource<List<com.ljyh.mei.data.model.response.ListeningTrack>> =
+        withContext(Dispatchers.IO) { safeApiCall { weApiService.getRecentListening().tracks() } }
+
     suspend fun getListenDataRealtimeReport(type: String): Resource<ListenDataRealtimeResponse> =
         withContext(Dispatchers.IO) {
             safeApiCall {

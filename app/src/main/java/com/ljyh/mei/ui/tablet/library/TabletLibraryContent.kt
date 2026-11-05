@@ -45,6 +45,7 @@ internal fun TabletLibraryContent(state: LibraryPageState, actions: LibraryPageA
         val loading = state.state is LibraryUiState.Loading
         TabletDetailPage(
             title = "音乐库", sideWidth = metrics.sideWidthDp.dp,
+            actions = { com.ljyh.mei.ui.screen.profile.PersonalCenterEntry(actions.onOpenProfile, content?.profile?.avatarUrl.takeIf { state.signedIn }) },
             sidePane = { padding ->
                 LazyColumn(contentPadding = padding, modifier = Modifier.fillMaxSize(),
                     verticalArrangement = Arrangement.Center) {

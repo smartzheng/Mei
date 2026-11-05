@@ -175,4 +175,22 @@ class MeiAppNavigationTest {
         }
     }
 
+    @Test fun personalCenterSharesLibraryParentAndReturnsToSameEntry() {
+        for (pages in listOf(SharedMeiPageContent, TabletPageContent)) {
+            val nav = controller(pages)
+            nav.selectMainDestination(Index.Library)
+            val library = nav.currentBackStackEntry!!
+            library.savedStateHandle["library_scroll_marker"] = 9
+            nav.navigate(Screen.PersonalCenter.route)
+            assertEquals(Screen.PersonalCenter.route, nav.currentDestination!!.route)
+            assertSame(library, nav.getBackStackEntry(Screen.Library.route))
+            nav.navigate(Screen.ContentSettings.route)
+            assertTrue(nav.popBackStack())
+            assertEquals(Screen.PersonalCenter.route, nav.currentDestination!!.route)
+            assertTrue(nav.popBackStack())
+            assertSame(library, nav.currentBackStackEntry)
+            assertEquals(9, library.savedStateHandle.get<Int>("library_scroll_marker"))
+        }
+    }
+
 }

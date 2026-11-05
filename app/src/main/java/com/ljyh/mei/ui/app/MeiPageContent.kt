@@ -29,6 +29,9 @@ internal interface MeiPageContent {
     @Composable fun Home(scrollBehavior: TopAppBarScrollBehavior)
     @Composable fun Discovery(scrollBehavior: TopAppBarScrollBehavior)
     @Composable fun Library(scrollBehavior: TopAppBarScrollBehavior)
+    @Composable fun PersonalCenter(viewModel: LibraryViewModel) {
+        com.ljyh.mei.ui.screen.profile.PersonalCenterScreen(viewModel)
+    }
     @Composable fun Settings(scrollBehavior: TopAppBarScrollBehavior)
     @Composable fun PageHost(navController: NavHostController, modifier: Modifier, content: @Composable (Modifier) -> Unit) { content(modifier) }
     fun useImmediateTransition(navController: NavHostController, from: String?, to: String?): Boolean = false

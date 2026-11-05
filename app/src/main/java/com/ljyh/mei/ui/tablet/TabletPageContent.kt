@@ -29,6 +29,11 @@ internal object TabletPageContent : MeiPageContent by SharedMeiPageContent {
         TabletSettingsHost(navController, modifier, content)
     }
 
+    @Composable override fun PersonalCenter(viewModel: com.ljyh.mei.ui.screen.main.library.LibraryViewModel) {
+        com.ljyh.mei.ui.screen.profile.PersonalCenterScreen(viewModel, content = { state, actions ->
+            com.ljyh.mei.ui.tablet.profile.TabletPersonalCenterContent(state, actions)
+        })
+    }
     @Composable override fun Library(scrollBehavior: TopAppBarScrollBehavior) {
         LibraryScreen(scrollBehavior = scrollBehavior, content = { state, actions -> TabletLibraryContent(state, actions) })
     }

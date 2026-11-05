@@ -71,8 +71,10 @@ class LibraryViewModel internal constructor(
     val account: StateFlow<Resource<UserAccountSummary>> = _account
 
     private val _userDetail = MutableStateFlow<Resource<UserDetail>>(Resource.Loading)
+    val userDetail: StateFlow<Resource<UserDetail>> = _userDetail
 
     private val _userVipInfo = MutableStateFlow<Resource<UserVipInfo>>(Resource.Loading)
+    val userVipInfo: StateFlow<Resource<UserVipInfo>> = _userVipInfo
     private val fallbackProfile = MutableStateFlow<LibraryProfileUi?>(null)
 
     private val profileUi: StateFlow<LibraryProfileUi?> = combine(
@@ -142,7 +144,7 @@ class LibraryViewModel internal constructor(
     private var likedTracks: Map<Long, MediaMetadata> = emptyMap()
     private val selectedSection = MutableStateFlow(LibrarySection.Created)
 
-    private val listeningFootprint: StateFlow<ListeningFootprintUi> = combine(
+    val listeningFootprint: StateFlow<ListeningFootprintUi> = combine(
         _weekListenRealtime,
         _monthListenRealtime,
         _weekListenReport,
@@ -152,6 +154,20 @@ class LibraryViewModel internal constructor(
         started = SharingStarted.WhileSubscribed(5_000L),
         initialValue = ListeningFootprintUi(),
     )
+
+    val listeningReportStatus: StateFlow<Resource<Unit>> = combine(
+        _weekListenRealtime, _monthListenRealtime, _weekListenReport,
+    ) { week, month, report ->
+        val values = listOf(week, month, report)
+        when {
+            values.any { it is Resource.Loading } -> Resource.Loading
+            values.any { it is Resource.Error } -> Resource.Error("部分听歌足迹暂时无法同步")
+            week is Resource.Success && week.data.code != 200 -> Resource.Error("本周听歌足迹暂时不可用")
+            month is Resource.Success && month.data.code != 200 -> Resource.Error("本月听歌足迹暂时不可用")
+            report is Resource.Success && report.data.code != 200 -> Resource.Error("本周偏好暂时不可用")
+            else -> Resource.Success(Unit)
+        }
+    }.stateIn(requestScope, SharingStarted.WhileSubscribed(5_000L), Resource.Loading)
 
     private val coreLibraryUiState = combine(
         account,

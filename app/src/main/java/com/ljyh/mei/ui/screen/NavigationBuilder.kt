@@ -57,6 +57,11 @@ internal fun NavGraphBuilder.navigationBuilder(
         pages.Library(scrollBehavior)
     }
 
+    pageDestination(Screen.PersonalCenter.route) { entry ->
+        val parentEntry = remember(entry) { navController.getBackStackEntry(Screen.Library.route) }
+        pages.PersonalCenter(hiltViewModel(parentEntry))
+    }
+
     pageDestination(
         "${Screen.LibraryCollection.route}/{collection}",
         arguments = listOf(navArgument("collection") { type = NavType.StringType }),

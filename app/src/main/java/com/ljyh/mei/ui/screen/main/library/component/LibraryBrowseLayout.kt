@@ -51,6 +51,7 @@ fun LibraryBrowseLayout(
     onOpenCollection: (LibraryCollection) -> Unit,
     onLogin: () -> Unit,
     onRetry: () -> Unit,
+    onOpenProfile: () -> Unit = {},
 ) {
     val source = rememberHazeState()
     val listState = rememberLazyListState()
@@ -285,7 +286,8 @@ fun LibraryBrowseLayout(
                 }
             }
         }
-        MeiHazeTopBar(state = source, title = "音乐库", progress = progress)
+        MeiHazeTopBar(state = source, title = "音乐库", progress = progress,
+                actions = { com.ljyh.mei.ui.screen.profile.PersonalCenterEntry(onOpenProfile, data?.profile?.avatarUrl.takeIf { signedIn }) })
     }
 }
 

@@ -22,6 +22,7 @@ internal data class LibraryPageActions(
     val onOpenCollection: (LibraryCollection) -> Unit,
     val onLogin: () -> Unit,
     val onRetry: () -> Unit,
+    val onOpenProfile: () -> Unit = {},
 )
 
 @Composable
@@ -30,6 +31,6 @@ internal fun LibraryPageContent(state: LibraryPageState, actions: LibraryPageAct
         state.state, state.likedArtwork, state.likedSongTitle, state.signedIn,
         state.scrollBehavior, state.preparingPlayback, state.canPlay,
         actions.onPlayLiked, actions.onOpenPlaylist, actions.onOpenAlbum,
-        actions.onOpenCollection, actions.onLogin, actions.onRetry,
+        actions.onOpenCollection, actions.onLogin, actions.onRetry, actions.onOpenProfile,
     )
 }

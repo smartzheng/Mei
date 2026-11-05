@@ -14,6 +14,12 @@ import com.ljyh.mei.data.network.NeteaseHttp
 class WeApiService(private val http: NeteaseHttp) {
     private val base = "https://music.163.com"
 
+    suspend fun getListeningRank(uid: String, allTime: Boolean): com.ljyh.mei.data.model.response.ListeningRankResponse =
+        http.post(base, "/weapi/v1/play/record", mapOf("uid" to uid, "type" to if (allTime) "0" else "1"))
+
+    suspend fun getRecentListening(): com.ljyh.mei.data.model.response.RecentListeningResponse =
+        http.post(base, "/weapi/play-record/song/list", mapOf("limit" to "100"))
+
     // weapi 其实也是api开头的，但是为了拦截器区分，所以使用weapi开头
     suspend fun getEveryDayRecommendSongs(body: Map<String, String> = mapOf()): EveryDaySongs =
         http.post(base, "/weapi/v3/discovery/recommend/songs", body)
