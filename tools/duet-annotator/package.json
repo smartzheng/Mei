@@ -1,0 +1,14 @@
+{
+  "name": "duet-annotator",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "网易云 LRC 对唱声部标注网页",
+  "scripts": {
+    "start": "node server.mjs",
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

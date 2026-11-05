@@ -26,6 +26,8 @@ temp/
 accompanist-lyrics-ui/
 tools/*
 !tools/ci/
+!tools/duet-annotator/
+!tools/duet-annotator/**
 tools/ci/*
 !tools/ci/prepare-apks.py
 research/singer-diarization/

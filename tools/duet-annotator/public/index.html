@@ -1,0 +1,354 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#f3efe6" />
+    <meta name="color-scheme" content="light" />
+    <title>对唱标注 · Duet Sheet</title>
+    <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main">跳到主要内容</a>
+
+    <svg class="svg-sprite" aria-hidden="true">
+      <symbol id="icon-search" viewBox="0 0 24 24">
+        <circle cx="11" cy="11" r="6.5" />
+        <path d="m16 16 4.2 4.2" />
+      </symbol>
+      <symbol id="icon-download" viewBox="0 0 24 24">
+        <path d="M12 3v11" />
+        <path d="m7.5 10 4.5 4.5 4.5-4.5" />
+        <path d="M5 17.5v2.2h14v-2.2" />
+      </symbol>
+      <symbol id="icon-undo" viewBox="0 0 24 24">
+        <path d="M8 8H4V4" />
+        <path d="M4.8 8.2A8 8 0 1 1 4 14" />
+      </symbol>
+      <symbol id="icon-help" viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="8.5" />
+        <path d="M9.6 9a2.5 2.5 0 0 1 4.8 1c0 1.7-2.4 1.9-2.4 3.4" />
+        <path d="M12 17h.01" />
+      </symbol>
+      <symbol id="icon-close" viewBox="0 0 24 24">
+        <path d="m6 6 12 12M18 6 6 18" />
+      </symbol>
+      <symbol id="icon-arrow" viewBox="0 0 24 24">
+        <path d="M5 12h14" />
+        <path d="m14 7 5 5-5 5" />
+      </symbol>
+      <symbol id="icon-note" viewBox="0 0 24 24">
+        <path d="M10 18V6l8-2v12" />
+        <circle cx="7.5" cy="18" r="2.5" />
+        <circle cx="15.5" cy="16" r="2.5" />
+      </symbol>
+    </svg>
+
+    <header class="app-bar">
+      <a class="brand" id="brandLink" href="./" aria-label="返回对唱标注首页">
+        <span class="brand-mark" aria-hidden="true"><i></i><i></i></span>
+        <span class="brand-copy">
+          <strong>对唱标注</strong>
+          <small>DUET SHEET</small>
+        </span>
+      </a>
+
+      <div class="app-bar-actions">
+        <span class="save-state" id="saveState" hidden></span>
+        <button class="icon-button" id="helpButton" type="button" aria-label="查看键盘操作" title="键盘操作" hidden>
+          <svg class="icon" aria-hidden="true"><use href="#icon-help"></use></svg>
+        </button>
+      </div>
+    </header>
+
+    <main id="main">
+      <section class="home" id="homeView">
+        <div class="home-copy">
+          <p class="eyebrow">网易云 LRC · 手工声部标注</p>
+          <h1>把每一句歌词<br />标成男声、女声<span class="headline-tail">或合唱。</span></h1>
+          <p class="lede">输入歌曲名或网易云 ID，获取歌词后逐行标注。标注自动保存在本机。</p>
+
+          <form class="search-form" id="searchForm" novalidate>
+            <label for="searchInput">歌曲名、网易云 ID 或歌曲链接</label>
+            <div class="search-line">
+              <svg class="search-icon icon" aria-hidden="true"><use href="#icon-search"></use></svg>
+              <input
+                id="searchInput"
+                name="query"
+                type="text"
+                autocomplete="off"
+                autocapitalize="off"
+                spellcheck="false"
+                maxlength="80"
+                placeholder="晴天 / 186016 / 歌曲链接"
+              />
+              <button class="primary-button" id="searchButton" type="submit">
+                <span>获取歌词</span>
+                <svg class="icon" aria-hidden="true"><use href="#icon-arrow"></use></svg>
+              </button>
+            </div>
+            <p class="field-error" id="searchError" role="alert" hidden></p>
+            <p class="search-hint">搜索可能包含翻唱，认准歌手与专辑。知道 ID 时直接粘贴最快。</p>
+          </form>
+
+          <section class="recent" id="recentSection" hidden aria-labelledby="recentTitle">
+            <div class="section-heading">
+              <h2 id="recentTitle">最近标注</h2>
+            </div>
+            <ul class="recent-list" id="recentList"></ul>
+          </section>
+
+          <section class="search-results" id="searchResults" hidden aria-labelledby="resultsTitle">
+            <div class="section-heading">
+              <h2 id="resultsTitle">搜索结果</h2>
+              <span id="resultCount"></span>
+            </div>
+            <p class="search-status" id="searchStatus" role="status" hidden></p>
+            <ul class="result-list" id="resultList"></ul>
+          </section>
+        </div>
+
+        <aside class="home-specimen" aria-hidden="true">
+          <div class="specimen-sheet">
+            <div class="specimen-meta">
+              <span class="specimen-label">标注示例</span>
+              <span class="timecode">03:42</span>
+            </div>
+            <div class="specimen-row is-male">
+              <span class="timecode">01:12</span>
+              <span class="specimen-text">风把答案吹回来</span>
+              <span class="specimen-tag">男声</span>
+            </div>
+            <div class="specimen-row is-female">
+              <span class="timecode">01:18</span>
+              <span class="specimen-text">沿着这条街一直走</span>
+              <span class="specimen-tag">女声</span>
+            </div>
+            <div class="specimen-row is-both">
+              <span class="timecode">01:23</span>
+              <span class="specimen-text">我们一起唱完这一句</span>
+              <span class="specimen-tag">合唱</span>
+            </div>
+            <div class="specimen-row">
+              <span class="timecode">01:29</span>
+              <span class="specimen-text">最后一个字留给谁</span>
+              <span class="specimen-tag is-empty">待标注</span>
+            </div>
+            <div class="specimen-rule"></div>
+            <div class="specimen-foot">
+              <span><i class="dot male"></i>男声</span>
+              <span><i class="dot female"></i>女声</span>
+              <span><i class="dot both"></i>合唱</span>
+            </div>
+          </div>
+        </aside>
+      </section>
+
+      <section class="workspace" id="workspaceView" hidden aria-label="歌词标注">
+        <div class="workspace-loading" id="loadingView" hidden aria-live="polite">
+          <div class="skeleton skeleton-title"></div>
+          <div class="skeleton skeleton-subtitle"></div>
+          <div class="loading-lines">
+            <div class="skeleton skeleton-line"></div>
+            <div class="skeleton skeleton-line short"></div>
+            <div class="skeleton skeleton-line"></div>
+            <div class="skeleton skeleton-line shorter"></div>
+            <div class="skeleton skeleton-line"></div>
+          </div>
+          <span class="visually-hidden">正在获取歌曲和歌词</span>
+        </div>
+
+        <div class="workspace-error" id="workspaceError" hidden>
+          <span class="error-mark" aria-hidden="true">!</span>
+          <h1 id="workspaceErrorTitle">无法加载歌曲</h1>
+          <p id="workspaceErrorMessage"></p>
+          <div class="error-actions">
+            <button class="primary-button" id="retryLoadButton" type="button">重试</button>
+            <button class="secondary-button" id="errorBackButton" type="button">换一首</button>
+          </div>
+        </div>
+
+        <div class="workspace-content" id="workspaceContent" hidden>
+          <header class="song-header">
+            <div class="cover-frame" id="coverFrame">
+              <img id="songCover" alt="" />
+              <svg class="cover-placeholder icon" aria-hidden="true"><use href="#icon-note"></use></svg>
+            </div>
+            <div class="song-copy">
+              <p class="eyebrow">网易云音乐 · <span id="songId"></span></p>
+              <h1 id="songTitle"></h1>
+              <p class="song-byline">
+                <span id="songArtists"></span>
+                <span class="byline-dot" aria-hidden="true">·</span>
+                <span id="songAlbum"></span>
+              </p>
+            </div>
+            <div class="song-actions">
+              <button class="secondary-button" id="backButton" type="button">换一首</button>
+              <button class="primary-button" id="exportButton" type="button">
+                <svg class="icon" aria-hidden="true"><use href="#icon-download"></use></svg>
+                <span>导出标注</span>
+              </button>
+            </div>
+
+            <div class="mobile-summary">
+              <div class="mobile-progress-copy">
+                <strong id="mobileReviewed">0</strong>
+                <span>/ <span id="mobileTotal">0</span> 行已标注</span>
+              </div>
+              <div class="split-bar mini" id="mobileSplitBar" role="img" aria-label="标注进度"></div>
+              <div class="mobile-counts">
+                <span><i class="dot male"></i>男 <b id="mobileMale">0</b></span>
+                <span><i class="dot female"></i>女 <b id="mobileFemale">0</b></span>
+                <span><i class="dot both"></i>合 <b id="mobileBoth">0</b></span>
+                <span><i class="dot skip"></i>跳 <b id="mobileSkip">0</b></span>
+              </div>
+            </div>
+          </header>
+
+          <div class="work-grid">
+            <section class="lyric-pane" aria-labelledby="sheetTitle">
+              <h2 class="visually-hidden" id="sheetTitle">歌词列表</h2>
+
+              <div class="sheet-toolbar" id="sheetToolbar">
+                <div class="filter-scroll">
+                  <div class="filters" id="filters" role="group" aria-label="筛选歌词"></div>
+                </div>
+                <div class="toolbar-actions">
+                  <span class="review-count" id="reviewCount">剩余 0 行</span>
+                  <button class="icon-button small" id="undoButton" type="button" aria-label="撤销上一步标注" title="撤销 ⌘Z" disabled>
+                    <svg class="icon" aria-hidden="true"><use href="#icon-undo"></use></svg>
+                  </button>
+                </div>
+              </div>
+
+              <div class="credit-note" id="creditNote" hidden>
+                <span id="creditNoteText"></span>
+                <button class="text-button" id="creditToggle" type="button"></button>
+              </div>
+
+              <div class="lyric-empty" id="lyricEmpty" hidden>
+                <span class="empty-mark" aria-hidden="true">LRC</span>
+                <h2>没有可标注的歌词</h2>
+                <p id="lyricEmptyMessage">这首歌可能是纯音乐，或接口没有返回歌词。</p>
+                <div class="empty-actions">
+                  <button class="primary-button" id="retryLyricsButton" type="button">重新获取</button>
+                  <button class="secondary-button" id="emptyBackButton" type="button">换一首</button>
+                </div>
+              </div>
+
+              <ol class="lyric-list" id="lyricList" aria-live="off"></ol>
+
+              <div class="filtered-empty" id="filteredEmpty" hidden>
+                <p>这个筛选下没有歌词。</p>
+                <button class="text-button" id="showAllButton" type="button">查看全部</button>
+              </div>
+            </section>
+
+            <aside class="session-panel" aria-label="标注进度与操作">
+              <section class="panel-block">
+                <p class="eyebrow">标注进度</p>
+                <p class="progress-figure">
+                  <strong id="reviewedCount">0</strong>
+                  <span>/ <span id="totalCount">0</span> 行</span>
+                </p>
+                <div class="split-bar" id="splitBar" role="img" aria-label="标注进度"></div>
+                <p class="remaining-copy" id="remainingCopy">还剩 0 行</p>
+                <ul class="count-list">
+                  <li><span><i class="dot male"></i>男声</span><b id="countMale">0</b></li>
+                  <li><span><i class="dot female"></i>女声</span><b id="countFemale">0</b></li>
+                  <li><span><i class="dot both"></i>合唱</span><b id="countBoth">0</b></li>
+                  <li><span><i class="dot skip"></i>跳过</span><b id="countSkip">0</b></li>
+                  <li><span><i class="dot unlabeled"></i>未标注</span><b id="countUnlabeled">0</b></li>
+                </ul>
+              </section>
+
+              <section class="panel-block">
+                <p class="eyebrow">快捷键</p>
+                <dl class="shortcut-list">
+                  <div><dt>男声</dt><dd><kbd>1</kbd></dd></div>
+                  <div><dt>女声</dt><dd><kbd>2</kbd></dd></div>
+                  <div><dt>合唱</dt><dd><kbd>3</kbd></dd></div>
+                  <div><dt>跳过</dt><dd><kbd>0</kbd></dd></div>
+                  <div><dt>上下切换</dt><dd><kbd>↑</kbd><kbd>↓</kbd></dd></div>
+                  <div><dt>撤销</dt><dd><kbd data-mod-key>⌘</kbd><kbd>Z</kbd></dd></div>
+                </dl>
+              </section>
+
+              <section class="panel-block panel-save">
+                <p class="eyebrow">存储</p>
+                <p class="panel-note" id="storageNote">标注自动保存在当前浏览器。</p>
+                <button class="secondary-button full-width" id="sidebarExportButton" type="button">
+                  <svg class="icon" aria-hidden="true"><use href="#icon-download"></use></svg>
+                  <span>导出标注</span>
+                </button>
+              </section>
+            </aside>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <dialog class="modal" id="helpDialog" aria-labelledby="helpTitle">
+      <div class="modal-head">
+        <div>
+          <p class="eyebrow">键盘操作</p>
+          <h2 id="helpTitle">不用离开歌词行</h2>
+        </div>
+        <form method="dialog">
+          <button class="icon-button small" type="submit" aria-label="关闭">
+            <svg class="icon" aria-hidden="true"><use href="#icon-close"></use></svg>
+          </button>
+        </form>
+      </div>
+      <div class="shortcut-grid">
+        <div><span>标记男声</span><kbd>1</kbd></div>
+        <div><span>标记女声</span><kbd>2</kbd></div>
+        <div><span>标记合唱</span><kbd>3</kbd></div>
+        <div><span>跳过这一行</span><kbd>0</kbd></div>
+        <div><span>切换当前行</span><span class="key-pair"><kbd>↑</kbd><kbd>↓</kbd></span></div>
+        <div><span>清除当前标签</span><kbd>⌫</kbd></div>
+        <div><span>撤销</span><span class="key-pair"><kbd data-mod-key>⌘</kbd><kbd>Z</kbd></span></div>
+        <div><span>关闭弹窗</span><kbd>Esc</kbd></div>
+      </div>
+      <p class="modal-note">点击任意歌词行切换当前行；点击声部按钮直接标注。按 1、2、3 标注后会自动跳到下一行。</p>
+    </dialog>
+
+    <dialog class="modal" id="exportDialog" aria-labelledby="exportTitle">
+      <div class="modal-head">
+        <div>
+          <p class="eyebrow">导出</p>
+          <h2 id="exportTitle">带走这份标注</h2>
+        </div>
+        <form method="dialog">
+          <button class="icon-button small" type="submit" aria-label="关闭">
+            <svg class="icon" aria-hidden="true"><use href="#icon-close"></use></svg>
+          </button>
+        </form>
+      </div>
+      <p class="modal-note" id="exportSummary"></p>
+      <div class="export-options">
+        <button class="export-option" id="exportJsonButton" type="button">
+          <span class="export-icon">JSON</span>
+          <span>
+            <strong>完整备份</strong>
+            <small>包含歌曲信息、时间轴和所有标签。</small>
+          </span>
+        </button>
+        <button class="export-option" id="exportJsonlButton" type="button">
+          <span class="export-icon">JSONL</span>
+          <span>
+            <strong>逐行数据</strong>
+            <small>一行一句，方便继续处理。未标注行保留为 reviewed=false。</small>
+          </span>
+        </button>
+      </div>
+      <p class="modal-note">文件不包含音频。制作信息行不会导出。</p>
+    </dialog>
+
+    <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>
