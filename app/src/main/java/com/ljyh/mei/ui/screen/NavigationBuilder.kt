@@ -49,20 +49,21 @@ internal fun NavGraphBuilder.navigationBuilder(
     scrollBehavior: TopAppBarScrollBehavior,
     pages: MeiPageContent,
 ) {
-    pageDestination(Screen.Home.route) {
+    pageDestination(navController, Screen.Home.route) {
         pages.Home(scrollBehavior)
     }
 
-    pageDestination(Screen.Library.route) {
+    pageDestination(navController, Screen.Library.route) {
         pages.Library(scrollBehavior)
     }
 
-    pageDestination(Screen.PersonalCenter.route) { entry ->
+    pageDestination(navController, Screen.PersonalCenter.route) { entry ->
         val parentEntry = remember(entry) { navController.getBackStackEntry(Screen.Library.route) }
         pages.PersonalCenter(hiltViewModel(parentEntry))
     }
 
     pageDestination(
+        navController,
         "${Screen.LibraryCollection.route}/{collection}",
         arguments = listOf(navArgument("collection") { type = NavType.StringType }),
     ) { entry ->
@@ -73,87 +74,89 @@ internal fun NavGraphBuilder.navigationBuilder(
         pages.Collection(collection = collection, viewModel = hiltViewModel(parentEntry))
     }
 
-    pageDestination(Screen.FindMusic.route) {
+    pageDestination(navController, Screen.FindMusic.route) {
         pages.Discovery(scrollBehavior)
     }
 
     pageDestination(
+        navController,
         route = "${Screen.DiscoverPlaylists.route}?category={category}",
         arguments = listOf(navArgument("category") { type = NavType.StringType; defaultValue = "全部" }),
     ) { DiscoverPlaylistsScreen() }
-    pageDestination(Screen.DiscoverAlbums.route) { DiscoverAlbumsScreen() }
-    pageDestination(Screen.DiscoverCharts.route) { DiscoverChartsScreen() }
+    pageDestination(navController, Screen.DiscoverAlbums.route) { DiscoverAlbumsScreen() }
+    pageDestination(navController, Screen.DiscoverCharts.route) { DiscoverChartsScreen() }
 
-    pageDestination(Screen.AudioMatch.route) {
+    pageDestination(navController, Screen.AudioMatch.route) {
         AudioMatchScreen(scrollBehavior = scrollBehavior)
     }
 
-    pageDestination(Screen.Test.route) {
+    pageDestination(navController, Screen.Test.route) {
         Test()
     }
 
-    pageDestination(Screen.Setting.route) {
+    pageDestination(navController, Screen.Setting.route) {
         pages.Settings(scrollBehavior)
     }
 
-    pageDestination(Screen.GlassSettings.route) {
+    pageDestination(navController, Screen.GlassSettings.route) {
         GlassSettingsScreen()
     }
-    pageDestination(Screen.AppearanceSettings.route) {
+    pageDestination(navController, Screen.AppearanceSettings.route) {
         AppearanceSettingsScreen(scrollBehavior)
     }
 
-    pageDestination(Screen.BetaSettings.route) {
+    pageDestination(navController, Screen.BetaSettings.route) {
         BetaSettingsScreen(scrollBehavior)
     }
 
-    pageDestination(Screen.LyricsSettings.route) {
+    pageDestination(navController, Screen.LyricsSettings.route) {
         LyricsSettingsScreen(scrollBehavior)
     }
 
-    pageDestination(Screen.LxSources.route) { LxSourcesScreen(scrollBehavior) }
+    pageDestination(navController, Screen.LxSources.route) { LxSourcesScreen(scrollBehavior) }
 
-    pageDestination(Screen.ContentSettings.route) {
+    pageDestination(navController, Screen.ContentSettings.route) {
         ContentsSettingScreen(scrollBehavior)
     }
-    pageDestination(Screen.SourceAndLyricsSettings.route) { SourceAndLyricsSettingsScreen() }
-    pageDestination(Screen.AudioOutputSettings.route) { AudioOutputSettingsScreen() }
-    pageDestination(Screen.UsbExclusiveSettings.route) {
+    pageDestination(navController, Screen.SourceAndLyricsSettings.route) { SourceAndLyricsSettingsScreen() }
+    pageDestination(navController, Screen.AudioOutputSettings.route) { AudioOutputSettingsScreen() }
+    pageDestination(navController, Screen.UsbExclusiveSettings.route) {
         UsbExclusiveSettingsScreen(scrollBehavior)
     }
-    pageDestination(Screen.PlaySettings.route){
+    pageDestination(navController, Screen.PlaySettings.route){
         PlaySettingScreen(scrollBehavior)
     }
 
-    pageDestination(Screen.DeveloperSettings.route) {
+    pageDestination(navController, Screen.DeveloperSettings.route) {
         DeveloperSettingsScreen(scrollBehavior)
     }
 
-    pageDestination(Screen.Equalizer.route) {
+    pageDestination(navController, Screen.Equalizer.route) {
         EqualizerSettingScreen(scrollBehavior)
     }
 
-    pageDestination(Screen.ReverbSettings.route) {
+    pageDestination(navController, Screen.ReverbSettings.route) {
         ReverbSettingScreen(scrollBehavior)
     }
 
-    pageDestination(Screen.DownloadSettings.route) {
+    pageDestination(navController, Screen.DownloadSettings.route) {
         DownloadSettingScreen(scrollBehavior)
     }
 
-    pageDestination(Screen.CacheSettings.route) {
+    pageDestination(navController, Screen.CacheSettings.route) {
         CacheSettingsScreen(scrollBehavior)
     }
 
-    pageDestination(Screen.DownloadManage.route) {
+    pageDestination(navController, Screen.DownloadManage.route) {
         DownloadManageScreen(scrollBehavior)
     }
 
-    pageDestination(Screen.LocalMusic.route) {
+    pageDestination(navController, Screen.LocalMusic.route) {
         LocalMusicScreen(scrollBehavior)
     }
 
     pageDestination(
+        navController,
         route = "${Screen.LocalSongList.route}/{type}/{name}",
         arguments = listOf(
             navArgument("type") { type = NavType.StringType },
@@ -197,16 +200,17 @@ internal fun NavGraphBuilder.navigationBuilder(
         )
     }
 
-    pageDestination(Screen.EveryDay.route){
+    pageDestination(navController, Screen.EveryDay.route){
         EveryDay()
     }
-    pageDestination(Screen.About.route) {
+    pageDestination(navController, Screen.About.route) {
         AboutScreen()
     }
-    pageDestination(Screen.Log.route) {
+    pageDestination(navController, Screen.Log.route) {
         LogScreen()
     }
     pageDestination(
+        navController,
         route = "${Screen.SearchResult.route}/{query}/{type}",
         arguments = listOf(
             navArgument("query") {
@@ -224,6 +228,7 @@ internal fun NavGraphBuilder.navigationBuilder(
         )
     }
     pageDestination(
+        navController,
         route = "${Screen.PlayList.route}/{id}",
         arguments = listOf(
             navArgument("id") {
@@ -236,6 +241,7 @@ internal fun NavGraphBuilder.navigationBuilder(
 
 
     pageDestination(
+        navController,
         route = "${Screen.Album.route}/{id}",
         arguments = listOf(
             navArgument("id") {
@@ -247,6 +253,7 @@ internal fun NavGraphBuilder.navigationBuilder(
     }
     
     pageDestination(
+        navController,
         route = "${Screen.Artist.route}/{id}",
         arguments = listOf(
             navArgument("id") {
@@ -258,6 +265,7 @@ internal fun NavGraphBuilder.navigationBuilder(
     }
 
     pageDestination(
+        navController,
         route = "${Screen.ArtistSongs.route}/{id}",
         arguments = listOf(navArgument("id") { type = NavType.StringType }),
     ) {
@@ -265,17 +273,19 @@ internal fun NavGraphBuilder.navigationBuilder(
     }
 
     pageDestination(
+        navController,
         route = "${Screen.ArtistAlbums.route}/{id}",
         arguments = listOf(navArgument("id") { type = NavType.StringType }),
     ) {
         pages.ArtistAlbums(id = it.arguments!!.getString("id")!!)
     }
 
-    pageDestination(Screen.History.route) {
+    pageDestination(navController, Screen.History.route) {
         HistoryScreen()
     }
 
     pageDestination(
+        navController,
         route = "${Screen.Comment.route}/{songId}",
         arguments = listOf(
             navArgument("songId") { type = NavType.StringType }

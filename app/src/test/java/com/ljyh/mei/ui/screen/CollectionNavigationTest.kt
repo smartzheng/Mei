@@ -22,17 +22,18 @@ class CollectionNavigationTest {
         navigatorProvider.addNavigator(ComposeNavigator())
         setViewModelStore(ViewModelStore())
         graph = createGraph(startDestination = Screen.FindMusic.route) {
-            pageDestination(Screen.FindMusic.route) { }
-            pageDestination(Screen.Library.route) { }
-            pageDestination("${Screen.LibraryCollection.route}/{collection}",
+            pageDestination(this@apply, Screen.FindMusic.route) { }
+            pageDestination(this@apply, Screen.Library.route) { }
+            pageDestination(this@apply, "${Screen.LibraryCollection.route}/{collection}",
                 listOf(navArgument("collection") { type = NavType.StringType })) { }
             pageDestination(
+                this@apply,
                 "${Screen.DiscoverPlaylists.route}?category={category}",
                 listOf(navArgument("category") { type = NavType.StringType; defaultValue = "全部" }),
             ) { }
-            pageDestination(Screen.DiscoverAlbums.route) { }
-            pageDestination(Screen.DiscoverCharts.route) { }
-            pageDestination("${Screen.PlayList.route}/{id}", listOf(navArgument("id") { type = NavType.LongType })) { }
+            pageDestination(this@apply, Screen.DiscoverAlbums.route) { }
+            pageDestination(this@apply, Screen.DiscoverCharts.route) { }
+            pageDestination(this@apply, "${Screen.PlayList.route}/{id}", listOf(navArgument("id") { type = NavType.LongType })) { }
         }
     }
 
