@@ -50,7 +50,7 @@ class LocalMusicViewModel @Inject constructor(
     val artistImages: StateFlow<Map<String, String?>> = _artistImages
     private val albumRequests = mutableSetOf<LocalAlbumArtworkKey>()
     private val _albumImages = MutableStateFlow<Map<LocalAlbumArtworkKey, String?>>(emptyMap())
-    val albumImages: StateFlow<Map<LocalAlbumArtworkKey, String?>> = _albumImages
+    internal val albumImages: StateFlow<Map<LocalAlbumArtworkKey, String?>> = _albumImages
 
     fun loadArtistImage(name: String) {
         if (name.isBlank() || name in artistRequests || name in _artistImages.value) return
