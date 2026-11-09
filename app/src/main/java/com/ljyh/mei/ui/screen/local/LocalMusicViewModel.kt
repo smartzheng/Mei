@@ -12,6 +12,10 @@ import kotlinx.coroutines.flow.SharingStarted
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ljyh.mei.data.repository.LocalMusicScanner
+import com.ljyh.mei.data.repository.SearchRepository
+import com.ljyh.mei.data.network.Resource
+import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withPermit
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
@@ -30,6 +34,7 @@ sealed interface LocalScanState {
 @HiltViewModel
 class LocalMusicViewModel @Inject constructor(
     private val scanner: LocalMusicScanner,
+    private val searchRepository: SearchRepository,
     @param:ApplicationContext private val context: Context,
 ) : ViewModel() {
     private val _scanState = MutableStateFlow<LocalScanState>(LocalScanState.Idle)
@@ -39,6 +44,32 @@ class LocalMusicViewModel @Inject constructor(
     private val _folders = MutableStateFlow<List<String>>(emptyList())
     val folders: StateFlow<List<String>> = _folders
     private var scanJob: Job? = null
+    private val artistRequests = mutableSetOf<String>()
+    private val artistRequestLimit = Semaphore(3)
+    private val _artistImages = MutableStateFlow<Map<String, String?>>(emptyMap())
+    val artistImages: StateFlow<Map<String, String?>> = _artistImages
+
+    fun loadArtistImage(name: String) {
+        if (name.isBlank() || name in artistRequests || name in _artistImages.value) return
+        artistRequests.add(name)
+        viewModelScope.launch {
+            try {
+                val image = artistRequestLimit.withPermit {
+                    when (val result = searchRepository.search(name, type = 100, limit = 20)) {
+                        is Resource.Success -> exactArtistImage(name, result.data.artists)
+                        else -> null
+                    }
+                }
+                _artistImages.value = _artistImages.value + (name to image)
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (_: Exception) {
+                _artistImages.value = _artistImages.value + (name to null)
+            } finally {
+                artistRequests.remove(name)
+            }
+        }
+    }
 
     fun saveFilter(value: LocalFolderFilter) {
         viewModelScope.launch {

@@ -60,6 +60,9 @@ jobs:
           cmake --build app/build/usb-host-tests -j2
           ctest --test-dir app/build/usb-host-tests --output-on-failure
 
+      - name: Test local music, artwork, and navigation
+        run: bash ./gradlew --no-daemon -PmeiAbiSplits=true :app:testDebugUnitTest --tests com.ljyh.mei.data.repository.LocalFolderFilterTest --tests com.ljyh.mei.utils.image.LocalAudioArtworkFetcherTest --tests com.ljyh.mei.ui.screen.local.LocalArtistImagesTest --tests com.ljyh.mei.ui.screen.CollectionNavigationTest
+
       - name: Build arm64 test APKs
         run: bash ./gradlew --no-daemon -PmeiAbiSplits=true :app:assembleRelease
 

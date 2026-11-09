@@ -2,6 +2,7 @@ package com.ljyh.mei.ui.screen.local
 
 import com.ljyh.mei.ui.component.glass.MeiTopAppBar
 import android.Manifest
+import android.net.Uri
 import android.content.pm.PackageManager
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -77,6 +78,7 @@ fun LocalMusicScreen(
     val scanState by viewModel.scanState.collectAsState()
     val folderFilter by viewModel.filter.collectAsState()
     val availableFolders by viewModel.folders.collectAsState()
+    val artistImages by viewModel.artistImages.collectAsState()
     var showFolderFilter by remember { mutableStateOf(false) }
     val permission = if (Build.VERSION.SDK_INT >= 33) {
         Manifest.permission.READ_MEDIA_AUDIO
@@ -195,9 +197,11 @@ fun LocalMusicScreen(
                             ArtistRow(
                                 artists = artists,
                                 songs = localSongs,
+                                artistImages = artistImages,
+                                onArtistVisible = viewModel::loadArtistImage,
                                 onArtistClick = { name ->
                                     Screen.LocalSongList.navigate(navController) {
-                                        addPath("artist"); addPath(name)
+                                        addPath("artist"); addPath(Uri.encode(name))
                                     }
                                 }
                             )
@@ -212,7 +216,7 @@ fun LocalMusicScreen(
                                 songs = localSongs,
                                 onAlbumClick = { name ->
                                     Screen.LocalSongList.navigate(navController) {
-                                        addPath("album"); addPath(name)
+                                        addPath("album"); addPath(Uri.encode(name))
                                     }
                                 }
                             )

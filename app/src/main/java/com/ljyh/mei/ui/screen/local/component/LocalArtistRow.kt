@@ -19,6 +19,7 @@ import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -30,10 +31,8 @@ import com.ljyh.mei.data.model.room.Song
 import com.ljyh.mei.ui.component.layout.meiPageGutter
 import com.ljyh.mei.ui.component.card.StableArtworkText
 
-fun isSoloArtist(artistList: List<String>): Boolean = artistList.size == 1
-
 @Composable
-internal fun ArtistRow(artists: List<String>, songs: List<Song>, onArtistClick: (String) -> Unit = {}) {
+internal fun ArtistRow(artists: List<String>, songs: List<Song>, artistImages: Map<String, String?>, onArtistVisible: (String) -> Unit, onArtistClick: (String) -> Unit = {}) {
     LazyRow(
         contentPadding = PaddingValues(horizontal = meiPageGutter()),
         horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -42,11 +41,8 @@ internal fun ArtistRow(artists: List<String>, songs: List<Song>, onArtistClick: 
             val artistSongs = songs.filter { song ->
                 artist in song.artist
             }
-            val cover = artistSongs
-                .firstOrNull { isSoloArtist(it.artist) && it.cover.isNotEmpty() }
-                ?.cover
-                ?: artistSongs.firstOrNull { it.cover.isNotEmpty() }?.cover
-            ArtistCard(artist, "${artistSongs.size} 首", cover, onClick = { onArtistClick(artist) })
+            LaunchedEffect(artist) { onArtistVisible(artist) }
+            ArtistCard(artist, "${artistSongs.size} 首", artistImages[artist], onClick = { onArtistClick(artist) })
         }
     }
 }
@@ -61,15 +57,12 @@ internal fun ArtistCard(name: String, count: String, coverUrl: String?, onClick:
             modifier = Modifier.size(72.dp).clip(CircleShape)
                 .background(MaterialTheme.colorScheme.surfaceVariant)
         ) {
-            if (coverUrl != null) {
-                AsyncImage(model = coverUrl, null, contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize())
-            } else {
-                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Icon(Icons.Rounded.Person, null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-                        modifier = Modifier.size(32.dp))
-                }
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Icon(Icons.Rounded.Person, null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                    modifier = Modifier.size(32.dp))
+                if (coverUrl != null) AsyncImage(model = coverUrl, contentDescription = null,
+                    contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
             }
         }
         Spacer(Modifier.height(6.dp))

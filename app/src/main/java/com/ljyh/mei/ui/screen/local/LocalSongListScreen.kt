@@ -111,13 +111,15 @@ fun LocalSongListScreen(
 
     val folderFilter by remember(context) { context.dataStore.data.map { it.localFolderFilter() } }.collectAsState(initial = LocalFolderFilter())
     val allSongs by when (filterType) {
-        "artist" -> db.songDao().getLocalSongsByArtistContains(filterValue)
+        "artist" -> db.songDao().getLocalSongs()
         "album" -> db.songDao().getLocalSongsByAlbum(filterValue)
         "folder" -> db.songDao().getSongsByFolder(filterValue)
         else -> db.songDao().getLocalSongs()
     }.collectAsState(initial = emptyList())
 
-    val songs = remember(allSongs, folderFilter) { allSongs.filter { folderFilter.allows(it.folderPath) } }
+    val songs = remember(allSongs, folderFilter, filterType, filterValue) {
+        allSongs.filter { folderFilter.allows(it.folderPath) && (filterType != "artist" || filterValue in it.artist) }
+    }
     val tracks: List<MediaMetadata> = songs.map { it.toMediaMetadata() }
     val coverUrl = songs.firstOrNull { it.cover.isNotEmpty() }?.cover
 

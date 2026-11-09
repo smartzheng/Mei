@@ -1,5 +1,6 @@
 package com.ljyh.mei.ui.screen
 
+import android.net.Uri
 import androidx.lifecycle.ViewModelStore
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
@@ -31,9 +32,24 @@ class CollectionNavigationTest {
                 "${Screen.DiscoverPlaylists.route}?category={category}",
                 listOf(navArgument("category") { type = NavType.StringType; defaultValue = "全部" }),
             ) { }
+            pageDestination(this@apply, "${Screen.LocalSongList.route}/{type}/{name}",
+                listOf(navArgument("type") { type = NavType.StringType }, navArgument("name") { type = NavType.StringType })) { }
             pageDestination(this@apply, Screen.DiscoverAlbums.route) { }
             pageDestination(this@apply, Screen.DiscoverCharts.route) { }
             pageDestination(this@apply, "${Screen.PlayList.route}/{id}", listOf(navArgument("id") { type = NavType.LongType })) { }
+        }
+    }
+
+    @Test
+    fun localArtistAndAlbumNamesWithReservedCharactersRemainOneRouteArgument() {
+        val nav = controller()
+        for (type in listOf("artist", "album")) {
+            for (name in listOf("王/五?&%+#", "A+B", "周 杰伦")) {
+                nav.navigate("${Screen.LocalSongList.route}/$type/${Uri.encode(name)}")
+                assertEquals(type, nav.currentBackStackEntry!!.arguments!!.getString("type"))
+                assertEquals(name, nav.currentBackStackEntry!!.arguments!!.getString("name"))
+                assertTrue(nav.popBackStack())
+            }
         }
     }
 
