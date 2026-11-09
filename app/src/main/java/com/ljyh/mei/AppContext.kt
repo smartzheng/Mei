@@ -23,6 +23,7 @@ import com.ljyh.mei.data.repository.DynamicCoverRepository
 import com.ljyh.mei.data.repository.LikedSongsRepository
 import com.ljyh.mei.data.repository.UserRepository
 import com.ljyh.mei.utils.image.ArtworkRequestInterceptor
+import com.ljyh.mei.utils.image.LocalAudioArtworkFetcher
 import com.ljyh.mei.utils.power.canUseBatteryIntensiveFeatures
 import com.ljyh.mei.utils.preferences.dataStore
 import dagger.hilt.android.HiltAndroidApp
@@ -114,6 +115,7 @@ class AppContext : Application(), SingletonImageLoader.Factory {
             }
             .components {
                 add(ArtworkRequestInterceptor())
+                add(LocalAudioArtworkFetcher.Factory())
                 add(AnimatedImageDecoder.Factory())
                 add(OkHttpNetworkFetcherFactory(okHttpClient))
             }

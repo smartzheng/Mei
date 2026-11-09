@@ -39,12 +39,15 @@ fun CoverCollage(
             }
         }
     } else if (covers.size == 1) {
-        AsyncImage(
-            model = covers[0],
-            contentDescription = null,
-            contentScale = ContentScale.Crop,
-            modifier = Modifier.size(size).clip(RoundedCornerShape(radius))
-        )
+        Surface(modifier = Modifier.size(size), shape = RoundedCornerShape(radius),
+            color = MaterialTheme.colorScheme.surfaceVariant) {
+            Box(contentAlignment = Alignment.Center) {
+                Icon(Icons.Rounded.MusicNote, null, tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                    modifier = Modifier.size(size * 0.45f))
+                AsyncImage(model = covers[0], contentDescription = null, contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(radius)))
+            }
+        }
     } else {
         val halfSize = size / 2
         Surface(

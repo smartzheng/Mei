@@ -1,5 +1,6 @@
 package com.ljyh.mei.ui.screen.local
 
+import com.ljyh.mei.ui.component.glass.meiTopBarContentClearance
 import com.ljyh.mei.ui.component.glass.MeiTopAppBar
 import com.ljyh.mei.ui.component.glass.MeiTopBarBackground
 import com.ljyh.mei.ui.component.glass.meiArtworkTopBarBackground
@@ -99,6 +100,7 @@ fun LocalSongListScreen(
     title: String,
     scrollBehavior: TopAppBarScrollBehavior
 ) {
+    val topBarClearance = meiTopBarContentClearance()
     val navController = LocalNavController.current
     val pageHaze = rememberHazeState()
     val context = LocalContext.current
@@ -230,6 +232,7 @@ fun LocalSongListScreen(
                         },
                         onMoreClick = { track, anchor -> menuTrack = TrackMenuTarget(track, anchor, QueueSource(QueueSource.Type.LOCAL, "$filterType+$filterValue", title)) },
                         contentPadding = PaddingValues(
+                            top = topBarClearance,
                             bottom = LocalPlayerAwareWindowInsets.current.asPaddingValues()
                                 .calculateBottomPadding()
                         )

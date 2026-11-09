@@ -6,6 +6,7 @@ import android.provider.MediaStore
 import com.ljyh.mei.data.model.room.Song
 import com.ljyh.mei.data.model.room.SourceType
 import com.ljyh.mei.di.dao.SongDao
+import com.ljyh.mei.utils.image.localAudioArtworkUri
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.currentCoroutineContext
@@ -90,7 +91,7 @@ class LocalMusicScanner @Inject constructor(
                     title = title.ifBlank { "未知歌曲" },
                     artist = artist,
                     album = album,
-                    cover = old?.cover.orEmpty(),
+                    cover = localAudioArtworkUri(old?.cover, uri),
                     duration = rows.getLong(durationColumn).coerceAtLeast(0L) / 1000L,
                     path = uri,
                     sourceType = SourceType.LOCAL,

@@ -59,6 +59,7 @@ import com.ljyh.mei.ui.screen.local.component.FolderItem
 import com.ljyh.mei.ui.screen.local.component.LocalFolderFilterDialog
 import com.ljyh.mei.ui.screen.local.component.ManagementCard
 import com.ljyh.mei.ui.screen.local.component.SectionHeader
+import com.ljyh.mei.ui.component.glass.meiTopBarContentClearance
 import com.ljyh.mei.ui.component.glass.MeiGlassBackButton
 import com.ljyh.mei.ui.component.glass.MeiGlassIconButton
 import com.ljyh.mei.ui.component.layout.meiPageGutter
@@ -72,6 +73,7 @@ fun LocalMusicScreen(
     val pageHaze = rememberHazeState()
     val context = LocalContext.current
     val db = AppDatabase.getDatabase(context)
+    val topBarClearance = meiTopBarContentClearance()
     val scanState by viewModel.scanState.collectAsState()
     val folderFilter by viewModel.filter.collectAsState()
     val availableFolders by viewModel.folders.collectAsState()
@@ -151,7 +153,7 @@ fun LocalMusicScreen(
             if (scanState is LocalScanState.Failed) {
                 Text(
                     (scanState as LocalScanState.Failed).message,
-                    modifier = Modifier.padding(horizontal = meiPageGutter(), vertical = 8.dp),
+                    modifier = Modifier.padding(horizontal = meiPageGutter()).padding(top = topBarClearance + 8.dp, bottom = 8.dp),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.error,
                 )
@@ -171,7 +173,7 @@ fun LocalMusicScreen(
             } else {
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(bottom = 16.dp)
+                    contentPadding = PaddingValues(top = topBarClearance, bottom = 16.dp)
                 ) {
                     item { SectionHeader("歌曲", "${localSongs.size} 首") }
                     item {

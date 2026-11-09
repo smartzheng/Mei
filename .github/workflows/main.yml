@@ -67,8 +67,8 @@ jobs:
           cmake --build app/build/usb-host-tests -j2
           ctest --test-dir app/build/usb-host-tests --output-on-failure
 
-      - name: Test local music folder filters
-        run: bash ./gradlew --no-daemon -PmeiAbiSplits=true :app:testDebugUnitTest --tests com.ljyh.mei.data.repository.LocalFolderFilterTest
+      - name: Test local music filters and artwork
+        run: bash ./gradlew --no-daemon -PmeiAbiSplits=true :app:testDebugUnitTest --tests com.ljyh.mei.data.repository.LocalFolderFilterTest --tests com.ljyh.mei.utils.image.LocalAudioArtworkFetcherTest
 
       - name: Build arm64 release APKs
         run: bash ./gradlew --no-daemon -PmeiAbiSplits=true :app:assembleRelease
