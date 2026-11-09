@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Verify the two signed ABI APKs and prepare named files for CI artifact or Release upload."""
+"""Verify the signed arm64 APK and prepare named files for CI artifact or Release upload."""
 
 import argparse
 import hashlib
@@ -10,7 +10,7 @@ import subprocess
 from zipfile import ZipFile
 
 
-EXPECTED_ABIS = {"arm64-v8a", "x86_64"}
+EXPECTED_ABIS = {"arm64-v8a"}
 
 
 def prepare_apks(source: Path, output: Path, name: str, checksums: bool) -> None:
@@ -18,7 +18,7 @@ def prepare_apks(source: Path, output: Path, name: str, checksums: bool) -> None
         raise SystemExit("APK name must be a non-empty filename prefix.")
     signed_apks = sorted(source.glob("*-signed.apk"))
     if len(signed_apks) != len(EXPECTED_ABIS):
-        raise SystemExit(f"Expected exactly two signed APKs, found {len(signed_apks)}.")
+        raise SystemExit(f"Expected exactly one signed APK, found {len(signed_apks)}.")
 
     apksigner = Path(os.environ["ANDROID_HOME"]) / "build-tools/34.0.0/apksigner"
     seen = set()

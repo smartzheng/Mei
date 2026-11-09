@@ -17,6 +17,7 @@ android {
     namespace = "com.ljyh.mei"
     compileSdk = 37
     defaultConfig {
+        if (meiAbiSplits) ndk { abiFilters += "arm64-v8a" }
         applicationId = "com.ljyh.mei"
         minSdk = 29
         targetSdk = 37
@@ -30,7 +31,7 @@ android {
         abi {
             isEnable = meiAbiSplits
             reset()
-            include("arm64-v8a", "x86_64")
+            include("arm64-v8a")
             isUniversalApk = false
         }
     }
