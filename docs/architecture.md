@@ -19,6 +19,7 @@
 | 接口与响应解析 | `data/repository/`、`data/network/`、`data/model/` | 路径、协议和模型一起核对 |
 | 本地库、历史、下载记录 | `di/AppDatabase.kt`、`di/dao/`、`di/repository/` | 检查迁移与数据所有权 |
 | 播放、队列、音源或音效 | `playback/` | 页面通过播放连接消费服务状态 |
+| 本地音乐扫描与文件夹过滤 | `data/repository/LocalMusicScanner.kt`、`LocalFolderFilter.kt`、`ui/screen/local/` | 规则与数据保留边界见 [本地音乐](local-music.md) |
 | 图片请求、缓存与封面取色 | `utils/image/`、`AppContext.kt`、`di/repository/LibraryRepository.kt` | 后者文件内定义 `ColorRepository` 等类，文件名不等于单一职责 |
 | 设置项及偏好持久化 | `constants/`、`utils/preferences/`、`ui/screen/setting/` | 先找已有 key、偏好封装及消费入口 |
 | 原生 USB 输出、节拍分析 | `playback/usb/`、`playback/transition/`、`app/src/main/rust/`、`app/src/main/cpp/` | 同时检查 Kotlin 与原生边界 |

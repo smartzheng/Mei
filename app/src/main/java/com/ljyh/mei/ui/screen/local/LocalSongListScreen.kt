@@ -4,6 +4,10 @@ import com.ljyh.mei.ui.component.glass.MeiTopAppBar
 import com.ljyh.mei.ui.component.glass.MeiTopBarBackground
 import com.ljyh.mei.ui.component.glass.meiArtworkTopBarBackground
 import com.ljyh.mei.playback.queue.QueueSource
+import com.ljyh.mei.data.repository.LocalFolderFilter
+import com.ljyh.mei.data.repository.localFolderFilter
+import com.ljyh.mei.utils.preferences.dataStore
+import kotlinx.coroutines.flow.map
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
@@ -103,13 +107,15 @@ fun LocalSongListScreen(
     var enrichSong by remember { mutableStateOf<Song?>(null) }
     val db = AppDatabase.getDatabase(context)
 
-    val songs by when (filterType) {
+    val folderFilter by remember(context) { context.dataStore.data.map { it.localFolderFilter() } }.collectAsState(initial = LocalFolderFilter())
+    val allSongs by when (filterType) {
         "artist" -> db.songDao().getLocalSongsByArtistContains(filterValue)
         "album" -> db.songDao().getLocalSongsByAlbum(filterValue)
         "folder" -> db.songDao().getSongsByFolder(filterValue)
         else -> db.songDao().getLocalSongs()
     }.collectAsState(initial = emptyList())
 
+    val songs = remember(allSongs, folderFilter) { allSongs.filter { folderFilter.allows(it.folderPath) } }
     val tracks: List<MediaMetadata> = songs.map { it.toMediaMetadata() }
     val coverUrl = songs.firstOrNull { it.cover.isNotEmpty() }?.cover
 

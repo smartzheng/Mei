@@ -1,5 +1,14 @@
 package com.ljyh.mei.ui.screen.local
 
+import android.content.Context
+import androidx.datastore.preferences.core.edit
+import com.ljyh.mei.data.repository.*
+import com.ljyh.mei.utils.preferences.dataStore
+import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.SharingStarted
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ljyh.mei.data.repository.LocalMusicScanner
@@ -21,17 +30,34 @@ sealed interface LocalScanState {
 @HiltViewModel
 class LocalMusicViewModel @Inject constructor(
     private val scanner: LocalMusicScanner,
+    @param:ApplicationContext private val context: Context,
 ) : ViewModel() {
     private val _scanState = MutableStateFlow<LocalScanState>(LocalScanState.Idle)
     val scanState: StateFlow<LocalScanState> = _scanState
+    val filter = context.dataStore.data.map { it.localFolderFilter() }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, LocalFolderFilter())
+    private val _folders = MutableStateFlow<List<String>>(emptyList())
+    val folders: StateFlow<List<String>> = _folders
     private var scanJob: Job? = null
+
+    fun saveFilter(value: LocalFolderFilter) {
+        viewModelScope.launch {
+            context.dataStore.edit {
+                it[LocalFolderModeKey] = value.mode.name
+                it[LocalFolderPathsKey] = value.folders
+            }
+            scan()
+        }
+    }
 
     fun scan() {
         if (scanJob?.isActive == true) return
         scanJob = viewModelScope.launch {
             _scanState.value = LocalScanState.Scanning
             try {
-                _scanState.value = LocalScanState.Done(scanner.scan())
+                val result = scanner.scan(context.dataStore.data.first().localFolderFilter())
+                _folders.value = result.folders
+                _scanState.value = LocalScanState.Done(result.count)
             } catch (cancelled: CancellationException) {
                 throw cancelled
             } catch (error: Exception) {

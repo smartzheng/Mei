@@ -21,6 +21,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.MusicNote
 import androidx.compose.material.icons.rounded.Refresh
+import androidx.compose.material.icons.rounded.FilterAlt
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -55,6 +56,7 @@ import com.ljyh.mei.ui.screen.local.component.AlbumRow
 import com.ljyh.mei.ui.screen.local.component.ArtistRow
 import com.ljyh.mei.ui.screen.local.component.EmptyLocalMusic
 import com.ljyh.mei.ui.screen.local.component.FolderItem
+import com.ljyh.mei.ui.screen.local.component.LocalFolderFilterDialog
 import com.ljyh.mei.ui.screen.local.component.ManagementCard
 import com.ljyh.mei.ui.screen.local.component.SectionHeader
 import com.ljyh.mei.ui.component.glass.MeiGlassBackButton
@@ -71,6 +73,9 @@ fun LocalMusicScreen(
     val context = LocalContext.current
     val db = AppDatabase.getDatabase(context)
     val scanState by viewModel.scanState.collectAsState()
+    val folderFilter by viewModel.filter.collectAsState()
+    val availableFolders by viewModel.folders.collectAsState()
+    var showFolderFilter by remember { mutableStateOf(false) }
     val permission = if (Build.VERSION.SDK_INT >= 33) {
         Manifest.permission.READ_MEDIA_AUDIO
     } else {
@@ -89,8 +94,15 @@ fun LocalMusicScreen(
         if (hasAudioPermission) viewModel.scan() else permissionLauncher.launch(permission)
     }
 
-    val localSongs by db.songDao().getLocalSongs().collectAsState(initial = emptyList())
-    val albums by db.songDao().getLocalAlbums().collectAsState(initial = emptyList())
+    val allLocalSongs by db.songDao().getLocalSongs().collectAsState(initial = emptyList())
+    val localSongs = remember(allLocalSongs, folderFilter) { allLocalSongs.filter { folderFilter.allows(it.folderPath) } }
+    val albums = remember(localSongs) { localSongs.map { it.album }.filter { it.isNotBlank() }.distinct().sorted() }
+    if (showFolderFilter) {
+        LocalFolderFilterDialog(folderFilter, availableFolders, onDismiss = { showFolderFilter = false }, onSave = {
+            showFolderFilter = false
+            viewModel.saveFilter(it)
+        })
+    }
 
     val artists = remember(localSongs) {
         localSongs.flatMap { it.artist }.distinct().sorted()
@@ -112,6 +124,9 @@ fun LocalMusicScreen(
                 title = { Text("本地音乐") },
                 navigationIcon = { MeiGlassBackButton(onClick = navController::navigateUp, onLongClick = navController::backToMain) },
                 actions = {
+                    MeiGlassIconButton(onClick = { showFolderFilter = true }, enabled = hasAudioPermission && scanState !is LocalScanState.Scanning) {
+                        Icon(Icons.Rounded.FilterAlt, contentDescription = "文件夹过滤")
+                    }
                     MeiGlassIconButton(onClick = requestScan, enabled = scanState !is LocalScanState.Scanning) {
                         Icon(Icons.Rounded.Refresh, contentDescription = "扫描本地音乐")
                     }
@@ -150,6 +165,7 @@ fun LocalMusicScreen(
                         hasPermission = hasAudioPermission,
                         isScanning = scanState is LocalScanState.Scanning,
                         onScan = requestScan,
+                        filtered = folderFilter.mode != com.ljyh.mei.data.repository.LocalFolderMode.ALL,
                     )
                 }
             } else {

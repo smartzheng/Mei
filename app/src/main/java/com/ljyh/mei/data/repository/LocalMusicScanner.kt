@@ -19,7 +19,9 @@ class LocalMusicScanner @Inject constructor(
     @param:ApplicationContext private val context: Context,
     private val songDao: SongDao,
 ) {
-    suspend fun scan(): Int = withContext(Dispatchers.IO) {
+    data class ScanResult(val count: Int, val folders: List<String>)
+
+    suspend fun scan(filter: LocalFolderFilter): ScanResult = withContext(Dispatchers.IO) {
         val collection = MediaStore.Audio.Media.getContentUri(MediaStore.VOLUME_EXTERNAL)
         val projection = arrayOf(
             MediaStore.Audio.Media._ID,
@@ -39,6 +41,7 @@ class LocalMusicScanner @Inject constructor(
             .toHashSet()
         val now = System.currentTimeMillis()
         val found = ArrayList<Song>()
+        val folders = sortedSetOf<String>(String.CASE_INSENSITIVE_ORDER)
         val cursor = context.contentResolver.query(
             collection,
             projection,
@@ -61,7 +64,6 @@ class LocalMusicScanner @Inject constructor(
                 currentCoroutineContext().ensureActive()
                 val mediaId = rows.getLong(idColumn)
                 val uri = ContentUris.withAppendedId(collection, mediaId).toString()
-                if (uri in downloadedPaths) continue
 
                 val songId = "local_-$mediaId"
                 val old = existing[songId]
@@ -79,6 +81,9 @@ class LocalMusicScanner @Inject constructor(
                     ?: rows.getString(albumColumn).usableTag() ?: old?.album.orEmpty()
                 val folder = rows.getString(folderColumn).orEmpty().trimEnd('/')
                     .ifBlank { "其他" }
+
+                folders.add(folder)
+                if (uri in downloadedPaths || !filter.allows(folder)) continue
 
                 found += Song(
                     id = songId,
@@ -98,8 +103,9 @@ class LocalMusicScanner @Inject constructor(
                 )
             }
         }
-        songDao.synchronizeScannedSongs(found)
-        found.size
+        val preserved = existing.values.filterNot { filter.allows(it.folderPath) }
+        songDao.synchronizeScannedSongs(found + preserved)
+        ScanResult(found.size, folders.toList())
     }
 
     private fun String?.usableTag(): String? = this?.trim()

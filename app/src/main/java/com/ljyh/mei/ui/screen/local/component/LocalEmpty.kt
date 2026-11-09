@@ -20,6 +20,7 @@ internal fun EmptyLocalMusic(
     hasPermission: Boolean,
     isScanning: Boolean,
     onScan: () -> Unit,
+    filtered: Boolean = false,
 ) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Icon(
@@ -36,7 +37,7 @@ internal fun EmptyLocalMusic(
         )
         Spacer(Modifier.height(8.dp))
         Text(
-            if (isScanning) "正在扫描设备音乐" else if (hasPermission) "设备中没有找到音乐文件" else "允许读取音频后扫描设备音乐",
+            if (isScanning) "正在扫描设备音乐" else if (hasPermission && filtered) "当前文件夹规则下没有音乐" else if (hasPermission) "设备中没有找到音乐文件" else "允许读取音频后扫描设备音乐",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
         )
