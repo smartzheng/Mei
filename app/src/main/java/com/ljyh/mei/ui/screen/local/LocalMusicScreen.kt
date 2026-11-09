@@ -1,6 +1,5 @@
 package com.ljyh.mei.ui.screen.local
 
-import com.ljyh.mei.ui.component.glass.MeiTopAppBar
 import android.Manifest
 import android.net.Uri
 import android.content.pm.PackageManager
@@ -16,22 +15,18 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.background
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.MusicNote
 import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.FilterAlt
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -39,11 +34,16 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import java.net.URLEncoder
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.statusBars
 import androidx.core.content.ContextCompat
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.ljyh.mei.di.AppDatabase
@@ -60,25 +60,31 @@ import com.ljyh.mei.ui.screen.local.component.FolderItem
 import com.ljyh.mei.ui.screen.local.component.LocalFolderFilterDialog
 import com.ljyh.mei.ui.screen.local.component.ManagementCard
 import com.ljyh.mei.ui.screen.local.component.SectionHeader
-import com.ljyh.mei.ui.component.glass.meiTopBarContentClearance
-import com.ljyh.mei.ui.component.glass.MeiGlassBackButton
+import com.ljyh.mei.ui.component.glass.MeiHazeTopBar
 import com.ljyh.mei.ui.component.glass.MeiGlassIconButton
 import com.ljyh.mei.ui.component.layout.meiPageGutter
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LocalMusicScreen(
-    scrollBehavior: TopAppBarScrollBehavior,
     viewModel: LocalMusicViewModel = hiltViewModel(),
 ) {
     val navController = LocalNavController.current
     val pageHaze = rememberHazeState()
     val context = LocalContext.current
     val db = AppDatabase.getDatabase(context)
-    val topBarClearance = meiTopBarContentClearance()
+    val contentTop = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + 64.dp
+    val listState = rememberLazyListState()
+    val collapseDistance = with(LocalDensity.current) { 56.dp.toPx() }
+    val backgroundProgress by remember(listState, collapseDistance) {
+        derivedStateOf {
+            if (listState.firstVisibleItemIndex > 0) 1f
+            else (listState.firstVisibleItemScrollOffset / collapseDistance).coerceIn(0f, 1f)
+        }
+    }
     val scanState by viewModel.scanState.collectAsState()
     val folderFilter by viewModel.filter.collectAsState()
     val availableFolders by viewModel.folders.collectAsState()
     val artistImages by viewModel.artistImages.collectAsState()
+    val albumImages by viewModel.albumImages.collectAsState()
     var showFolderFilter by remember { mutableStateOf(false) }
     val permission = if (Build.VERSION.SDK_INT >= 33) {
         Manifest.permission.READ_MEDIA_AUDIO
@@ -122,27 +128,11 @@ fun LocalMusicScreen(
             .sortedBy { it.first }
     }
 
-    Scaffold(
-        topBar = {
-            MeiTopAppBar(hazeState = pageHaze,
-                title = { Text("本地音乐") },
-                navigationIcon = { MeiGlassBackButton(onClick = navController::navigateUp, onLongClick = navController::backToMain) },
-                actions = {
-                    MeiGlassIconButton(onClick = { showFolderFilter = true }, enabled = hasAudioPermission && scanState !is LocalScanState.Scanning) {
-                        Icon(Icons.Rounded.FilterAlt, contentDescription = "文件夹过滤")
-                    }
-                    MeiGlassIconButton(onClick = requestScan, enabled = scanState !is LocalScanState.Scanning) {
-                        Icon(Icons.Rounded.Refresh, contentDescription = "扫描本地音乐")
-                    }
-                },
-                scrollBehavior = scrollBehavior
-            )
-        }
-    ) { paddingValues ->
+    Box(Modifier.fillMaxSize()) {
         Column(
-            modifier = Modifier.hazeSource(pageHaze)
-                .fillMaxSize()
-                .padding(paddingValues)
+            modifier = Modifier.fillMaxSize()
+                .hazeSource(pageHaze)
+                .background(MaterialTheme.colorScheme.surface)
                 .windowInsetsPadding(
                     LocalPlayerAwareWindowInsets.current.only(
                         WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom
@@ -150,19 +140,19 @@ fun LocalMusicScreen(
                 )
         ) {
             if (scanState is LocalScanState.Scanning) {
-                LinearProgressIndicator(Modifier.fillMaxWidth())
+                LinearProgressIndicator(Modifier.fillMaxWidth().padding(top = contentTop))
             }
             if (scanState is LocalScanState.Failed) {
                 Text(
                     (scanState as LocalScanState.Failed).message,
-                    modifier = Modifier.padding(horizontal = meiPageGutter()).padding(top = topBarClearance + 8.dp, bottom = 8.dp),
+                    modifier = Modifier.padding(horizontal = meiPageGutter()).padding(top = contentTop + 8.dp, bottom = 8.dp),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.error,
                 )
             }
             if (localSongs.isEmpty()) {
                 Box(
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier.fillMaxSize().padding(top = contentTop),
                     contentAlignment = Alignment.Center
                 ) {
                     EmptyLocalMusic(
@@ -174,8 +164,9 @@ fun LocalMusicScreen(
                 }
             } else {
                 LazyColumn(
+                    state = listState,
                     modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(top = topBarClearance, bottom = 16.dp)
+                    contentPadding = PaddingValues(top = contentTop, bottom = 16.dp)
                 ) {
                     item { SectionHeader("歌曲", "${localSongs.size} 首") }
                     item {
@@ -214,6 +205,8 @@ fun LocalMusicScreen(
                             AlbumRow(
                                 albums = albums,
                                 songs = localSongs,
+                                albumImages = albumImages,
+                                onAlbumVisible = viewModel::loadAlbumImage,
                                 onAlbumClick = { name ->
                                     Screen.LocalSongList.navigate(navController) {
                                         addPath("album"); addPath(Uri.encode(name))
@@ -242,6 +235,28 @@ fun LocalMusicScreen(
                 }
             }
         }
+        MeiHazeTopBar(
+            state = pageHaze,
+            title = "本地音乐",
+            progress = 1f,
+            backgroundProgress = backgroundProgress,
+            onNavigateBack = navController::navigateUp,
+            onBackLongClick = navController::backToMain,
+            actions = {
+                MeiGlassIconButton(
+                    onClick = { showFolderFilter = true },
+                    enabled = hasAudioPermission && scanState !is LocalScanState.Scanning,
+                ) {
+                    Icon(Icons.Rounded.FilterAlt, contentDescription = "文件夹过滤")
+                }
+                MeiGlassIconButton(
+                    onClick = requestScan,
+                    enabled = scanState !is LocalScanState.Scanning,
+                ) {
+                    Icon(Icons.Rounded.Refresh, contentDescription = "扫描本地音乐")
+                }
+            },
+        )
     }
 }
 

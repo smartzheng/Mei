@@ -152,7 +152,7 @@ internal fun NavGraphBuilder.navigationBuilder(
     }
 
     pageDestination(navController, Screen.LocalMusic.route) {
-        LocalMusicScreen(scrollBehavior)
+        LocalMusicScreen()
     }
 
     pageDestination(

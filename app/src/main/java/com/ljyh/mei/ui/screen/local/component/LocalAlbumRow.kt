@@ -9,20 +9,35 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.ljyh.mei.data.model.room.Song
 import com.ljyh.mei.ui.component.layout.meiPageGutter
+import com.ljyh.mei.ui.screen.local.LocalAlbumArtworkKey
 
 @Composable
-internal fun AlbumRow(albums: List<String>, songs: List<Song>, onAlbumClick: (String) -> Unit = {}) {
+internal fun AlbumRow(
+    albums: List<String>,
+    songs: List<Song>,
+    albumImages: Map<LocalAlbumArtworkKey, String?> = emptyMap(),
+    onAlbumVisible: (String, List<String>) -> Unit = { _, _ -> },
+    onAlbumClick: (String) -> Unit = {},
+) {
     LazyRow(
         contentPadding = PaddingValues(horizontal = meiPageGutter()),
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         items(albums) { album ->
             val albumSongs = songs.filter { it.album == album }
-            val cover = albumSongs.firstOrNull { it.cover.isNotEmpty() }?.cover
+            val artists = albumSongs.firstOrNull()?.artist.orEmpty()
+            val key = LocalAlbumArtworkKey(album, artists)
+            LaunchedEffect(key) { onAlbumVisible(album, artists) }
+            val localCover = albumSongs.firstOrNull {
+                it.cover.isNotBlank() && !it.cover.startsWith("content://media/external/audio/media/")
+            }?.cover
+            val cover = localCover ?: albumImages[key]
+                ?: albumSongs.firstOrNull { it.cover.isNotBlank() }?.cover
             AlbumCard(album, "${albumSongs.size} 首", cover, onClick = { onAlbumClick(album) })
         }
     }

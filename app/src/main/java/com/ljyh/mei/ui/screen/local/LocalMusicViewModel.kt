@@ -48,6 +48,9 @@ class LocalMusicViewModel @Inject constructor(
     private val artistRequestLimit = Semaphore(3)
     private val _artistImages = MutableStateFlow<Map<String, String?>>(emptyMap())
     val artistImages: StateFlow<Map<String, String?>> = _artistImages
+    private val albumRequests = mutableSetOf<LocalAlbumArtworkKey>()
+    private val _albumImages = MutableStateFlow<Map<LocalAlbumArtworkKey, String?>>(emptyMap())
+    val albumImages: StateFlow<Map<LocalAlbumArtworkKey, String?>> = _albumImages
 
     fun loadArtistImage(name: String) {
         if (name.isBlank() || name in artistRequests || name in _artistImages.value) return
@@ -67,6 +70,33 @@ class LocalMusicViewModel @Inject constructor(
                 _artistImages.value = _artistImages.value + (name to null)
             } finally {
                 artistRequests.remove(name)
+            }
+        }
+    }
+
+    fun loadAlbumImage(title: String, artists: List<String>) {
+        val key = LocalAlbumArtworkKey(title.trim(), artists.map(String::trim).filter(String::isNotEmpty).distinct())
+        if (key.title.isBlank() || key in albumRequests || key in _albumImages.value) return
+        albumRequests.add(key)
+        viewModelScope.launch {
+            try {
+                val image = artistRequestLimit.withPermit {
+                    when (val result = searchRepository.search(
+                        listOf(key.title, key.artists.joinToString(" ")).filter(String::isNotBlank).joinToString(" "),
+                        type = 10,
+                        limit = 20,
+                    )) {
+                        is Resource.Success -> exactAlbumImage(key.title, key.artists, result.data.albums)
+                        else -> null
+                    }
+                }
+                _albumImages.value = _albumImages.value + (key to image)
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (_: Exception) {
+                _albumImages.value = _albumImages.value + (key to null)
+            } finally {
+                albumRequests.remove(key)
             }
         }
     }
