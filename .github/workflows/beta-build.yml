@@ -45,7 +45,7 @@ jobs:
         run: |
           rustup toolchain install 1.97.0 --profile minimal --component rustfmt --component clippy
           rustup default 1.97.0
-          rustup target add aarch64-linux-android x86_64-linux-android
+          rustup target add aarch64-linux-android
 
       - name: Prepare USB test dependencies
         run: |
@@ -60,7 +60,7 @@ jobs:
           cmake --build app/build/usb-host-tests -j2
           ctest --test-dir app/build/usb-host-tests --output-on-failure
 
-      - name: Build arm64 and x86_64 test APKs
+      - name: Build arm64 test APKs
         run: bash ./gradlew --no-daemon -PmeiAbiSplits=true :app:assembleRelease
 
       - name: Sign APK
