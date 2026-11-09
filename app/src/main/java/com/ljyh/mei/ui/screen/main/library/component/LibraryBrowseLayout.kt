@@ -52,6 +52,7 @@ fun LibraryBrowseLayout(
     onLogin: () -> Unit,
     onRetry: () -> Unit,
     onOpenProfile: () -> Unit = {},
+    onOpenLocalMusic: () -> Unit = {},
 ) {
     val source = rememberHazeState()
     val listState = rememberLazyListState()
@@ -108,6 +109,7 @@ fun LibraryBrowseLayout(
                         startPadding = 0.dp
                     )
                 }
+                item(key = "local_music") { LocalMusicEntry(onOpenLocalMusic) }
                 when {
                     !signedIn -> item(key = "login") {
                         MeiStatePanel(

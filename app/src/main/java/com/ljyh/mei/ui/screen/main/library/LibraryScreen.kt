@@ -99,6 +99,7 @@ internal fun LibraryScreen(
                 },
                 onLogin = { Screen.ContentSettings.navigate(nav) },
                 onOpenProfile = { Screen.PersonalCenter.navigate(nav) },
+                onOpenLocalMusic = { Screen.LocalMusic.navigate(nav) },
                 onRetry = { viewModel.refresh() },
             ),
         )

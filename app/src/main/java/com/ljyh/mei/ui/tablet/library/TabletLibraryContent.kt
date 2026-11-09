@@ -21,6 +21,7 @@ import com.ljyh.mei.ui.component.artwork.VinylAlbumArtworkRatio
 import com.ljyh.mei.ui.component.layout.meiPageGutter
 import com.ljyh.mei.ui.component.shimmer.SkeletonShimmerHost
 import com.ljyh.mei.ui.screen.main.library.*
+import com.ljyh.mei.ui.screen.main.library.component.LocalMusicEntry
 import com.ljyh.mei.ui.component.artwork.PlaylistCoverStage
 import com.ljyh.mei.ui.component.shimmer.skeleton
 import androidx.compose.material.icons.rounded.PlayArrow
@@ -65,6 +66,7 @@ internal fun TabletLibraryContent(state: LibraryPageState, actions: LibraryPageA
                         meiPageGutter().value, VinylAlbumArtworkRatio)
                     LazyColumn(modifier = Modifier.fillMaxSize(), contentPadding = padding,
                         verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                        item(key = "local_music") { LocalMusicEntry(actions.onOpenLocalMusic) }
                         when {
                             !state.signedIn -> item { MeiStatePanel("登录查看歌单与收藏", Icons.Rounded.LibraryMusic,
                                 actionLabel = "登录账号", onAction = actions.onLogin) }

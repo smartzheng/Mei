@@ -56,3 +56,23 @@ private fun LibraryShortcut(
         }
     }
 }
+
+/** Local files remain available even when the cloud library is signed out. */
+@Composable
+internal fun LocalMusicEntry(onClick: () -> Unit) {
+    Surface(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = meiPageGutter()),
+        onClick = onClick,
+        shape = MaterialTheme.shapes.medium,
+        color = MaterialTheme.colorScheme.surfaceContainerLow,
+    ) {
+        Row(
+            modifier = Modifier.heightIn(min = 56.dp).padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            MeiCategoryIcon(Icons.Rounded.Folder, MeiCategory.Offline, size = 32.dp)
+            Text("本地音乐", style = MaterialTheme.typography.titleSmall)
+        }
+    }
+}
